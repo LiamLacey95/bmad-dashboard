@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import type { ProjectContext, ProjectDetail, ProjectSummary, SyncStatusPayload } from '../../../shared/delivery.js';
 import type { ServerToClientMessage } from '../../../shared/workflows.js';
 import { useAppState } from '../../state/appState';
@@ -360,7 +361,13 @@ export function ProjectsPage(): JSX.Element {
                 <ul className="space-y-1 text-xs text-[var(--muted-fg)]">
                   {state.selectedContext.stories.map((story) => (
                     <li key={story.id}>
-                      {story.id} | {story.title} | {story.ownerId} | {story.status}
+                      <Link
+                        to={`/kanban?projectId=${encodeURIComponent(state.selectedContext.project.id)}&storyId=${encodeURIComponent(story.id)}`}
+                        className="font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+                      >
+                        {story.id}
+                      </Link>{' '}
+                      | {story.title} | {story.ownerId} | {story.status}
                     </li>
                   ))}
                 </ul>
@@ -371,7 +378,13 @@ export function ProjectsPage(): JSX.Element {
                 <ul className="space-y-1 text-xs text-[var(--muted-fg)]">
                   {state.selectedContext.workflows.map((workflow) => (
                     <li key={workflow.id}>
-                      {workflow.id} | {workflow.name} | {workflow.ownerId} | {workflow.status}
+                      <Link
+                        to={`/workflows?workflowId=${encodeURIComponent(workflow.id)}`}
+                        className="font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+                      >
+                        {workflow.id}
+                      </Link>{' '}
+                      | {workflow.name} | {workflow.ownerId} | {workflow.status}
                     </li>
                   ))}
                 </ul>
@@ -382,7 +395,13 @@ export function ProjectsPage(): JSX.Element {
                 <ul className="space-y-1 text-xs text-[var(--muted-fg)]">
                   {state.selectedContext.documents.map((document) => (
                     <li key={document.id}>
-                      {document.id} | {document.title} | {document.mimeType}
+                      <Link
+                        to={`/documents?documentId=${encodeURIComponent(document.id)}`}
+                        className="font-medium text-[var(--accent)] underline-offset-2 hover:underline"
+                      >
+                        {document.id}
+                      </Link>{' '}
+                      | {document.title} | {document.mimeType}
                     </li>
                   ))}
                 </ul>

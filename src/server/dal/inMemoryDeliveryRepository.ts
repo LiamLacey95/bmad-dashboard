@@ -242,6 +242,27 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
     };
 
     this.projects.set(updatedProject.id, updatedProject);
+
+    const linkedWorkflows = [...this.workflowLinks.values()].filter((workflow) => workflow.storyId === updatedStory.id);
+    const workflowUpdates = (
+      await Promise.all(
+        linkedWorkflows.map(async (workflowLink) => {
+          const workflow = await this.workflowRepository.getWorkflowById(workflowLink.id);
+          if (!workflow || workflow.status === input.toStatus) {
+            return null;
+          }
+
+          return this.workflowRepository.applyWorkflowTransition({
+            workflowId: workflowLink.id,
+            toStatus: input.toStatus,
+            actorId: input.actorId,
+            reason: input.reason,
+            occurredAtUtc: updatedAt
+          });
+        })
+      )
+    ).filter((update): update is NonNullable<typeof update> => Boolean(update));
+
     await this.setSyncStatus({
       module: 'story',
       status: 'ok',
@@ -256,10 +277,18 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
       lastAttemptAtUtc: updatedAt,
       errorMessage: null
     });
+    await this.setSyncStatus({
+      module: 'workflow',
+      status: 'ok',
+      lastSuccessfulSyncAtUtc: updatedAt,
+      lastAttemptAtUtc: updatedAt,
+      errorMessage: null
+    });
 
     return {
       story: updatedStory,
-      project: this.buildProjectSummary(updatedProject)
+      project: this.buildProjectSummary(updatedProject),
+      workflowUpdates
     };
   }
 

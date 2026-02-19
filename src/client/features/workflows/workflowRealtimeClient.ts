@@ -40,7 +40,7 @@ export class WorkflowRealtimeClient {
       this.reconnectAttempt = 0;
       this.options.onOpen();
       this.send({ type: 'auth' });
-      this.send({ type: 'subscribe', topics: ['workflow', 'sync'] });
+      this.send({ type: 'subscribe', topics: ['workflow', 'story', 'sync'] });
       this.send({ type: 'resync_request', lastAckEventId: this.options.getLastAckEventId() });
       this.startHeartbeat();
     });

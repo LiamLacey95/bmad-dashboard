@@ -1,4 +1,5 @@
 import type { CanonicalStatus } from './statusModel.js';
+import type { WorkflowSummary, WorkflowTransition } from './workflows.js';
 
 export const PROJECT_MODULE = 'project' as const;
 export const STORY_MODULE = 'story' as const;
@@ -109,4 +110,8 @@ export interface SyncStatusPayload {
 export interface StoryStatusChange {
   story: StorySummary;
   project: ProjectSummary;
+  workflowUpdates: Array<{
+    workflow: WorkflowSummary;
+    transition: WorkflowTransition;
+  }>;
 }

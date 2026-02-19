@@ -2,7 +2,8 @@ import type {
   ServerToClientMessage,
   WorkflowSummary,
   WorkflowTransition,
-  WsEventMessage
+  WsEventMessage,
+  WsStoryEventMessage
 } from '../../../shared/workflows.js';
 
 export type WorkflowFilter = 'all' | 'blocked_failed';
@@ -83,6 +84,39 @@ function applyWorkflowEvent(state: WorkflowLiveState, message: WsEventMessage): 
       ...state.transitionsByWorkflowId,
       [message.payload.workflow.id]: nextTransitions
     },
+    stale: staleShouldClear ? false : state.stale,
+    requiresFreshEventAfterSync: staleShouldClear ? false : state.requiresFreshEventAfterSync,
+    lastAckEventId: message.eventId,
+    lastSuccessfulUpdateAt: message.occurredAt
+  };
+}
+
+function applyStoryEvent(state: WorkflowLiveState, message: WsStoryEventMessage): WorkflowLiveState {
+  if (!message.payload.workflowUpdates.length) {
+    return {
+      ...state,
+      lastAckEventId: message.eventId,
+      lastSuccessfulUpdateAt: message.occurredAt
+    };
+  }
+
+  const workflowById = new Map(state.workflows.map((workflow) => [workflow.id, workflow]));
+  const nextTransitionsByWorkflowId = { ...state.transitionsByWorkflowId };
+
+  for (const workflowUpdate of message.payload.workflowUpdates) {
+    workflowById.set(workflowUpdate.workflow.id, workflowUpdate.workflow);
+    const transitions = nextTransitionsByWorkflowId[workflowUpdate.workflow.id] ?? [];
+    nextTransitionsByWorkflowId[workflowUpdate.workflow.id] = [...transitions, workflowUpdate.transition].sort(
+      transitionSortAsc
+    );
+  }
+
+  const staleShouldClear = state.hasSuccessfulSync && state.requiresFreshEventAfterSync;
+
+  return {
+    ...state,
+    workflows: [...workflowById.values()].sort(workflowSortDesc),
+    transitionsByWorkflowId: nextTransitionsByWorkflowId,
     stale: staleShouldClear ? false : state.stale,
     requiresFreshEventAfterSync: staleShouldClear ? false : state.requiresFreshEventAfterSync,
     lastAckEventId: message.eventId,
@@ -188,6 +222,10 @@ export function workflowLiveReducer(state: WorkflowLiveState, action: WorkflowLi
 
       if (action.message.type === 'event' && action.message.module === 'workflow') {
         return applyWorkflowEvent(state, action.message);
+      }
+
+      if (action.message.type === 'event' && action.message.module === 'story') {
+        return applyStoryEvent(state, action.message);
       }
 
       if (action.message.type === 'sync_status' && action.message.module === 'workflow') {
