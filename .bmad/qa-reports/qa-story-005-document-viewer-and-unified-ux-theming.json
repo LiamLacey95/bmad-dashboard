@@ -1,0 +1,90 @@
+{
+  "story": "story-005-document-viewer-and-unified-ux-theming.md",
+  "overall_verdict": "PASS",
+  "summary": "Story 005 implementation satisfies document listing/viewing APIs, inline preview allowlisting with safe rendering boundaries, explicit fallback guidance, cross-module dark-mode theming, responsive layout safeguards, and persisted theme preference. Full test suite passes (45/45), including dedicated document, delivery, shell, and analytics/cost tests.",
+  "criteria_checked": 6,
+  "criteria_passed": 6,
+  "criteria_failed": 0,
+  "criteria": [
+    {
+      "id": 1,
+      "description": "Users can open document links from project or story context and view supported files inline.",
+      "verdict": "PASS",
+      "evidence": "Project context renders document links to `/documents?documentId=...` in `src/client/features/delivery/ProjectsPage.tsx:396` and `src/client/features/delivery/ProjectsPage.tsx:401`; integration test validates link routing in `tests/client/delivery-pages.test.tsx:225`. Inline preview rendering paths for markdown/json/pdf are implemented in `src/client/features/delivery/DocumentsPage.tsx:282`, `src/client/features/delivery/DocumentsPage.tsx:288`, and `src/client/features/delivery/DocumentsPage.tsx:294`, with inline markdown behavior verified in `tests/client/documents-page.test.tsx:156`."
+    },
+    {
+      "id": 2,
+      "description": "Unsupported or missing documents show explicit fallback/error state with actionable guidance.",
+      "verdict": "PASS",
+      "evidence": "Unsupported/missing payloads include actionable `guidance` in repository logic at `src/server/dal/inMemoryDeliveryRepository.ts:213` and `src/server/dal/inMemoryDeliveryRepository.ts:225`. UI renders explicit fallback panel and guidance text in `src/client/features/delivery/DocumentsPage.tsx:275`. Tests validate unsupported and missing fallback payload semantics in `tests/server/document-routes.test.ts:107` and actionable unsupported UI messaging in `tests/client/documents-page.test.tsx:166`."
+    },
+    {
+      "id": 3,
+      "description": "Document rendering enforces MIME allowlist and prevents unsafe inline execution.",
+      "verdict": "PASS",
+      "evidence": "Configurable MIME allowlist is defined and loaded from env/default in `src/server/routes/documentRoutes.ts:6` and `src/server/routes/documentRoutes.ts:17`; content endpoint uses allowlist during fetch in `src/server/routes/documentRoutes.ts:70` and `src/server/routes/documentRoutes.ts:73`. Non-allowlisted MIME types are blocked with `safeToRenderInline: false` in `src/server/dal/inMemoryDeliveryRepository.ts:212`. Markdown/JSON are rendered as text in `<pre>` (not HTML injection) in `src/client/features/delivery/DocumentsPage.tsx:284` and `src/client/features/delivery/DocumentsPage.tsx:290`. PDF is isolated with sandboxed iframe (`sandbox` empty and `referrerPolicy=no-referrer`) in `src/client/features/delivery/DocumentsPage.tsx:300`."
+    },
+    {
+      "id": 4,
+      "description": "All major modules meet dark-mode parity with readable contrast for status-critical elements.",
+      "verdict": "PASS",
+      "evidence": "Light/dark theme token sets are defined in `src/client/styles.css:5` and `src/client/styles.css:30`, including status-critical warning/error/status-pill color tokens (`src/client/styles.css:39`, `src/client/styles.css:47`, `src/client/styles.css:95`, `src/client/styles.css:101`). Core modules use shared tokens/status classes, e.g. workflows (`src/client/features/workflows/WorkflowsPage.tsx:199`), projects (`src/client/features/delivery/ProjectsPage.tsx:320`), costs (`src/client/features/costs/CostsPage.tsx:170`), analytics (`src/client/features/analytics/AnalyticsPage.tsx:300`), documents (`src/client/features/delivery/DocumentsPage.tsx:308`), and kanban (`src/client/features/delivery/KanbanPage.tsx:272`)."
+    },
+    {
+      "id": 5,
+      "description": "Core views remain usable across common desktop and mobile breakpoints without blocking critical actions.",
+      "verdict": "PASS",
+      "evidence": "Navigation and controls use wrapping/flexible layouts in shell (`src/client/components/AppShell.tsx:32`, `src/client/components/AppShell.tsx:36`) and module filters (`src/client/features/workflows/WorkflowsPage.tsx:146`, `src/client/features/costs/CostsPage.tsx:166`, `src/client/features/analytics/AnalyticsPage.tsx:186`). Data-heavy tables are overflow-safe with horizontal scroll in workflows/projects/costs/documents (`src/client/features/workflows/WorkflowsPage.tsx:169`, `src/client/features/delivery/ProjectsPage.tsx:291`, `src/client/features/costs/CostsPage.tsx:242`, `src/client/features/delivery/DocumentsPage.tsx:213`). Grids collapse to single-column before `lg`/`md` breakpoints and expand progressively (`src/client/features/delivery/DocumentsPage.tsx:211`, `src/client/features/delivery/KanbanPage.tsx:256`, `src/client/features/analytics/AnalyticsPage.tsx:337`, `src/client/features/costs/CostsPage.tsx:268`)."
+    },
+    {
+      "id": 6,
+      "description": "Theme preference persists across sessions.",
+      "verdict": "PASS",
+      "evidence": "Theme is restored from localStorage in `src/client/state/appState.tsx:42` and persisted on updates in `src/client/state/appState.tsx:55` plus reducer transitions in `src/client/state/appState.tsx:62`. Automated test verifies toggle updates `data-theme` and localStorage key in `tests/client/app-shell.test.tsx:129`."
+    }
+  ],
+  "issues_found": [
+    {
+      "severity": "low",
+      "description": "Responsive behavior and dark-mode parity are implemented via layout/token patterns, but there are no viewport-specific automated assertions (e.g., mobile width interaction checks) to guard regressions.",
+      "recommendation": "Add targeted UI tests that set mobile/desktop viewport widths and assert critical controls remain reachable and status indicators remain visible in each major module."
+    }
+  ],
+  "test_results": {
+    "tests_run": 45,
+    "tests_passed": 45,
+    "tests_failed": 0,
+    "details": [
+      {
+        "test": "npm test (vitest run) - full suite",
+        "result": "pass",
+        "note": "12 test files, 45 tests passed in 3.17s."
+      },
+      {
+        "test": "tests/server/document-routes.test.ts",
+        "result": "pass",
+        "note": "Validates list/filter, metadata fetch, allowlisted content, and unsupported/missing fallback payloads."
+      },
+      {
+        "test": "tests/client/documents-page.test.tsx",
+        "result": "pass",
+        "note": "Validates inline markdown preview and actionable unsupported fallback messaging."
+      },
+      {
+        "test": "tests/client/delivery-pages.test.tsx",
+        "result": "pass",
+        "note": "Validates project context links to story/workflow/document modules and kanban warning/read-only UX."
+      },
+      {
+        "test": "tests/client/app-shell.test.tsx",
+        "result": "pass",
+        "note": "Validates theme toggle persistence to localStorage and shell route coverage."
+      }
+    ]
+  },
+  "code_quality_notes": [
+    "Document API shape and validation are cleanly separated via zod request schemas and repository abstraction (`src/server/routes/documentRoutes.ts`).",
+    "Security-conscious rendering choices are present: plain-text markdown/json rendering and sandboxed PDF iframe (`src/client/features/delivery/DocumentsPage.tsx`).",
+    "Theme/token architecture is centralized and consistently consumed across modules, reducing style drift risk (`src/client/styles.css`, `src/client/state/appState.tsx`)."
+  ]
+}
