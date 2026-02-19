@@ -13,6 +13,7 @@ import type {
 } from '../../shared/delivery.js';
 import type { CanonicalStatus } from '../../shared/statusModel.js';
 import type { DeliveryRepository, ProjectQuery, StoryStatusUpdateInput, WorkflowRepository } from './interfaces.js';
+import { metricsRegistry } from '../observability/metrics.js';
 
 type ProjectRow = Omit<ProjectDetail, 'isOverdue'>;
 
@@ -363,21 +364,24 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
       status: 'ok',
       lastSuccessfulSyncAtUtc: updatedAt,
       lastAttemptAtUtc: updatedAt,
-      errorMessage: null
+      errorMessage: null,
+      staleReason: null
     });
     await this.setSyncStatus({
       module: 'project',
       status: 'ok',
       lastSuccessfulSyncAtUtc: updatedAt,
       lastAttemptAtUtc: updatedAt,
-      errorMessage: null
+      errorMessage: null,
+      staleReason: null
     });
     await this.setSyncStatus({
       module: 'workflow',
       status: 'ok',
       lastSuccessfulSyncAtUtc: updatedAt,
       lastAttemptAtUtc: updatedAt,
-      errorMessage: null
+      errorMessage: null,
+      staleReason: null
     });
 
     return {
@@ -395,6 +399,9 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
 
   async setSyncStatus(status: SyncModuleStatus): Promise<void> {
     this.syncStatus.set(status.module, status);
+    if (status.status === 'error') {
+      metricsRegistry.incrementSyncFailure(status.module);
+    }
   }
 
   private buildProjectSummary(project: ProjectRow): ProjectSummary {
@@ -651,21 +658,64 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
         status: 'ok',
         lastSuccessfulSyncAtUtc: now,
         lastAttemptAtUtc: now,
-        errorMessage: null
+        errorMessage: null,
+        staleReason: null
       },
       {
         module: 'story',
         status: 'ok',
         lastSuccessfulSyncAtUtc: now,
         lastAttemptAtUtc: now,
-        errorMessage: null
+        errorMessage: null,
+        staleReason: null
       },
       {
         module: 'workflow',
         status: 'ok',
         lastSuccessfulSyncAtUtc: now,
         lastAttemptAtUtc: now,
-        errorMessage: null
+        errorMessage: null,
+        staleReason: null
+      },
+      {
+        module: 'cost',
+        status: 'syncing',
+        lastSuccessfulSyncAtUtc: now,
+        lastAttemptAtUtc: now,
+        errorMessage: null,
+        staleReason: 'awaiting_projection_job'
+      },
+      {
+        module: 'analytics',
+        status: 'syncing',
+        lastSuccessfulSyncAtUtc: now,
+        lastAttemptAtUtc: now,
+        errorMessage: null,
+        staleReason: 'awaiting_projection_job'
+      },
+      {
+        module: 'documents',
+        status: 'ok',
+        lastSuccessfulSyncAtUtc: now,
+        lastAttemptAtUtc: now,
+        errorMessage: null,
+        staleReason: null
+      },
+      {
+        module: 'kanban',
+        status: 'ok',
+        lastSuccessfulSyncAtUtc: now,
+        lastAttemptAtUtc: now,
+        errorMessage: null,
+        staleReason: null
+      },
+      {
+        module: 'sync',
+        status: 'ok',
+        lastSuccessfulSyncAtUtc: now,
+        lastAttemptAtUtc: now,
+        errorMessage: null,
+        staleReason: null
       }
     ];
 

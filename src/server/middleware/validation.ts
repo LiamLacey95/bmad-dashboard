@@ -38,6 +38,7 @@ export function validateRequest(shape: RequestShape) {
         (validationError as Error & { statusCode: number; code: string; details: unknown }).statusCode = 422;
         (validationError as Error & { statusCode: number; code: string; details: unknown }).code =
           'VALIDATION_ERROR';
+        (validationError as Error & { recoverable: boolean }).recoverable = true;
         (validationError as Error & { statusCode: number; code: string; details: unknown }).details =
           error.issues;
         next(validationError);

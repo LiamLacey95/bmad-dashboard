@@ -31,7 +31,12 @@ export function createStoryRouter(
             new Error('Kanban editable mode is disabled. Story status transitions are read-only in MVP.'),
             {
               statusCode: 403,
-              code: 'UNAUTHORIZED'
+              code: 'UNAUTHORIZED',
+              recoverable: true,
+              context: {
+                action: 'enable_kanban_editable_mode',
+                envVar: 'KANBAN_EDITABLE'
+              }
             }
           );
         }

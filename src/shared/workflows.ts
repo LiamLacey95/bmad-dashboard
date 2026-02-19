@@ -84,6 +84,9 @@ export interface WsErrorMessage {
   code: string;
   message: string;
   recoverable: boolean;
+  requestId: string | null;
+  timestampUtc: string;
+  context?: Record<string, unknown>;
 }
 
 export interface WsSyncSnapshotMessage {

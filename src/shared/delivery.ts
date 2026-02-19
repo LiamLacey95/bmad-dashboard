@@ -4,10 +4,27 @@ import type { WorkflowSummary, WorkflowTransition } from './workflows.js';
 export const PROJECT_MODULE = 'project' as const;
 export const STORY_MODULE = 'story' as const;
 export const SYNC_MODULE = 'sync' as const;
+export const COST_MODULE = 'cost' as const;
+export const ANALYTICS_MODULE = 'analytics' as const;
+export const DOCUMENTS_MODULE = 'documents' as const;
+export const KANBAN_MODULE = 'kanban' as const;
 
 export type ProjectModule = typeof PROJECT_MODULE;
 export type StoryModule = typeof STORY_MODULE;
 export type SyncModule = typeof SYNC_MODULE;
+export type CostModule = typeof COST_MODULE;
+export type AnalyticsModule = typeof ANALYTICS_MODULE;
+export type DocumentsModule = typeof DOCUMENTS_MODULE;
+export type KanbanModule = typeof KANBAN_MODULE;
+export type SyncStatusModule =
+  | ProjectModule
+  | StoryModule
+  | 'workflow'
+  | CostModule
+  | AnalyticsModule
+  | DocumentsModule
+  | KanbanModule
+  | SyncModule;
 
 export interface ProjectSummary {
   id: string;
@@ -105,11 +122,12 @@ export interface KanbanBoard {
 }
 
 export interface SyncModuleStatus {
-  module: ProjectModule | StoryModule | 'workflow';
+  module: SyncStatusModule;
   status: 'ok' | 'syncing' | 'error';
   lastSuccessfulSyncAtUtc: string | null;
   lastAttemptAtUtc: string | null;
   errorMessage: string | null;
+  staleReason: string | null;
 }
 
 export interface ConsistencyWarning {

@@ -77,6 +77,13 @@ Frontend runs on `http://localhost:5173` and proxies `/api/*` to backend (`http:
 - MVP defaults to read-only Kanban.
 - Set `KANBAN_EDITABLE=true` to enable the `PATCH /api/v1/stories/:id/status` transition route.
 
+## SQLite persistence mode
+- Default runtime remains in-memory for local fast iteration and tests.
+- Set `PERSISTENCE_BACKEND=sqlite` to enable SQLite-backed repositories.
+- Optional DB path: `SQLITE_PATH=/tmp/bmad-dashboard.sqlite`.
+- SQLite startup enables WAL mode + busy timeout and applies migrations automatically.
+- Projection jobs run every 15s in SQLite mode and refresh workflow/project/story/cost/analytics read models.
+
 ## Document MIME allowlist
 - Inline rendering defaults to: `text/markdown`, `application/pdf`, `application/json`.
 - Override with: `DOCUMENT_INLINE_MIME_ALLOWLIST="text/markdown,application/pdf,application/json"`.

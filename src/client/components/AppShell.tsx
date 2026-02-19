@@ -26,6 +26,19 @@ export function AppShell(): JSX.Element {
     .map(([name, module]) => `${name}: ${module.lastSuccessfulUpdateAt}`)
     .join(' | ');
 
+  const actionableFailures = Object.entries(state.modules)
+    .filter(([, module]) => module.stale || module.status === 'error')
+    .map(([name, module]) => ({
+      name,
+      stale: module.stale,
+      status: module.status,
+      timestamp: module.lastSuccessfulUpdateAt ?? module.lastSuccessfulSyncAt ?? 'none',
+      action:
+        module.status === 'error'
+          ? 'Open module panel and retry fetch. If repeated, trigger a resync request.'
+          : 'Wait for heartbeat recovery or reload page to force websocket resubscribe.'
+    }));
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--fg)] transition-colors">
       <header className="border-b border-[var(--border)] bg-[var(--panel)]">
@@ -72,6 +85,17 @@ export function AppShell(): JSX.Element {
           <div className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--muted-fg)]">
             Last successful updates: {freshnessLabel || 'none'}
           </div>
+          {actionableFailures.length > 0 && (
+            <div className="status-panel-error space-y-2 rounded-md px-3 py-2 text-sm">
+              <p className="font-medium">Recovery actions</p>
+              {actionableFailures.map((failure) => (
+                <p key={failure.name}>
+                  Module: {failure.name} | State: {failure.status}
+                  {failure.stale ? ' + stale' : ''} | Last known update: {failure.timestamp} | Action: {failure.action}
+                </p>
+              ))}
+            </div>
+          )}
         </section>
 
         <main className="rounded-lg border border-[var(--border)] bg-[var(--panel)] p-4 shadow-sm">
