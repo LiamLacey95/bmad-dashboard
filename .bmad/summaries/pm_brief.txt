@@ -1,0 +1,38 @@
+Project Overview
+- Build a unified web dashboard for BMAD development operations so managers can monitor workflow execution, delivery progress, cost, and agent performance in near real time.
+- The product solves fragmented visibility across tools/logs by centralizing operational decision-making in one interface.
+
+Key Requirements (PM-Relevant)
+- MVP modules must all be available in one dashboard: workflow monitoring, project management, cost tracking, agent analytics, document viewer, and story Kanban.
+- Real-time behavior is mandatory: workflow/status/cost/story changes should push via WebSocket (no manual refresh dependency).
+- Workflow view must show current state, transitions with timestamps, and blocked/failed items.
+- Project views must support status/ownership visibility, progress indicators, and due-date awareness.
+- Cost views must support aggregate + per-project perspectives and time-window filtering.
+- Agent analytics must support trend comparison and outlier detection.
+- Document artifacts must be viewable in-app from project/story context.
+- Dark mode is a first-class MVP requirement across major views.
+- Responsive web app required; mobile-native app is explicitly out of scope.
+
+Technical Constraints
+- Stack is fixed for MVP: React + TypeScript + Tailwind (frontend), Node.js + Express (backend), SQLite (database), WebSocket (real-time channel).
+- SQLite is acceptable for initial moderate usage but may limit scale/concurrent writes; architecture should preserve future DB migration path.
+- Reliable real-time UX requires reconnect handling, heartbeat/sync logic, and clear stale-state visibility.
+- Analytics credibility depends on consistent event logging, timestamp fidelity, and clear metric lineage.
+
+Decisions Already Made
+- MVP is single-instance, SQLite-backed, with moderate load assumptions.
+- Advanced forecasting/ML, complex permissions/multi-tenant billing, deep external integrations are deferred.
+- Core priority is operational monitoring/control first; prevent scope creep into advanced analytics.
+
+Open Questions / Blockers
+- Final KPI definition for “agent performance” (speed, quality, rework, acceptance, etc.).
+- Final real-time SLA target (suggested candidate: <=3s backend event to UI update).
+- MVP auth/RBAC depth (minimal vs required controls).
+- Initial document formats for viewer support.
+- Kanban interaction scope for MVP (read-only vs editable drag/drop).
+- Historical retention windows for cost/performance analytics.
+- Max concurrent users/workflows to validate architecture sizing.
+
+PM Priorities for Next Alignment
+- Run stakeholder session to lock KPI definitions, real-time SLA, and MVP boundaries (especially access control, Kanban editability, analytics depth).
+- Convert these decisions into phase-1 acceptance criteria and success metrics.

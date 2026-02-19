@@ -1,0 +1,67 @@
+name: greenfield-fullstack
+description: Complete workflow for building new full-stack applications from scratch
+phases:
+  - name: planning
+    description: Create project documentation
+    steps:
+      - agent: analyst
+        model: gpt-5.3-codex
+        input: user_spec
+        output: docs/project-brief.md
+        instructions: Analyze requirements and create comprehensive project brief
+        
+      - agent: summarizer
+        model: gpt-5.3-codex
+        input: docs/project-brief.md
+        output: .bmad/summaries/pm_brief.txt
+        target: pm
+        instructions: Create 500-token summary for PM agent (be concise)
+        
+      - agent: pm
+        model: gpt-5.3-codex
+        input: .bmad/summaries/pm_brief.txt
+        output: docs/prd.md
+        instructions: Create detailed PRD with user stories and acceptance criteria
+        
+      - agent: summarizer
+        model: gpt-5.3-codex
+        input: docs/prd.md
+        output: .bmad/summaries/architect_prd.txt
+        target: architect
+        instructions: Create 800-token summary for Architect agent (be concise)
+        
+      - agent: architect
+        model: gpt-5.3-codex
+        input: .bmad/summaries/architect_prd.txt
+        output: docs/architecture.md
+        instructions: Design technical architecture and technology stack
+
+  - name: development
+    description: Implement features based on stories
+    steps:
+      - agent: scrum-master
+        model: gpt-5.3-codex
+        input: 
+          - docs/prd.md
+          - docs/architecture.md
+        output_pattern: stories/story-*.md
+        instructions: Break down into implementation-ready user stories
+        
+      - foreach: story in stories/
+        agents:
+          - dev:
+              model: gpt-5.3-codex
+              input: story
+              output: src/ (implementation)
+              instructions: Implement the story following architecture
+              
+          - qa:
+              model: gpt-5.3-codex
+              input: 
+                - story
+                - dev_output
+              output: qa-report.md
+              instructions: Verify implementation meets acceptance criteria
+              
+        retry_on_failure: true
+        max_retries: 2

@@ -1,0 +1,98 @@
+Project overview
+- BMAD Development Operations Dashboard is a unified, responsive web app intended to be the single operational cockpit for managers/operators to monitor workflow health, delivery progress, cost, and agent performance in near real time.
+- MVP goal is to reduce delayed decisions caused by fragmented signals by consolidating six operational modules plus real-time infrastructure and trust indicators (stale state, sync visibility, lineage).
+
+Key requirements for architecture
+- Unified dashboard shell (web only) spanning: Workflow Monitoring, Project Management views, Cost Tracking, Agent Analytics, Document Viewer, Story Kanban.
+- Real-time behavior is foundational, not optional:
+  - WebSocket push updates for workflow/project/story/cost/agent changes.
+  - Automatic reconnect with bounded retry.
+  - Heartbeat for silent disconnect detection.
+  - State resync on reconnect before clearing stale indicators.
+- Cross-module consistency requirements:
+  - Canonical lifecycle/status vocabulary shared across workflow/project/story.
+  - Synchronization integrity checks; show last successful sync and inconsistency warning on failure.
+- Workflow monitoring requirements:
+  - Live row state (id/name, current state, owner, last transition timestamp).
+  - Transition timeline with ordered state changes.
+  - Distinct blocked/failed visualization.
+  - Blocked/failed filtering that updates in real time (enter/exit filtered set).
+- Project delivery requirements:
+  - Project list/details with owner, status, progress, due date, risk flag.
+  - Overdue highlighting.
+  - Context-preserving links between project, story, workflow, and docs.
+- Cost requirements:
+  - Aggregate + per-project views.
+  - Time windows: 24h, 7d, 30d, custom range with validation.
+  - Missing data must be explicit “unavailable,” never treated as zero.
+- Agent analytics requirements:
+  - Multi-agent trend comparison over selected period.
+  - Directionality per KPI (up/down/flat).
+  - Outlier flags tied to metric/timepoint, with drilldown to source events/artifacts.
+  - KPI definitions/units visible in UI metadata.
+- Document viewer requirements:
+  - Inline rendering from project/story context.
+  - Clear unsupported/missing file fallback states.
+- Kanban requirements:
+  - Lifecycle columns with cards (title/ID, owner, status metadata).
+  - Live updates from events.
+  - MVP interaction mode is decision-gated: read-only vs editable drag/drop.
+- UX/theming requirements:
+  - Dark-mode parity across all major views.
+  - Theme preference persistence.
+  - Responsive behavior across desktop/mobile breakpoints with graceful overflow handling.
+
+Non-functional requirements and targets
+- Proposed event-to-UI freshness target: <= 3s under normal load (final SLA pending decision).
+- Proposed initial page load target: <= 3s on standard internal network.
+- Reliability: explicit stale-state transparency (badge + last successful update timestamp).
+- Data integrity/lineage:
+  - Timezone-safe, consistent timestamps.
+  - Metric lineage traceable from KPI to source events/transformations.
+- Accessibility/usability:
+  - Readable contrast in dark/light themes.
+  - Actionable error/empty states.
+
+Technical constraints (fixed)
+- Frontend: React + TypeScript + Tailwind.
+- Backend: Node.js + Express.
+- Database: SQLite.
+- Real-time channel: WebSocket.
+- MVP architecture assumption: single-instance Node/Express + SQLite for moderate concurrency.
+- Architectural expectation: preserve migration path from SQLite to higher-concurrency data store (DAL/abstraction boundaries).
+
+Success metrics to instrument
+- Freshness: >=95% of events reflected within agreed SLA (currently proposed <=3s).
+- Detection speed: median time to identify blocked/failed workflows improves by 30% vs baseline.
+- Operational coverage: >=90% of weekly review sessions touch 3+ modules.
+- Cross-view consistency: >=99% sampled story/workflow/project alignment.
+- Reliability: >=99% sessions without unresolved stale/disconnect state.
+- Dark mode usability: no significant critical-task completion drop vs light mode.
+
+Decisions already made
+- MVP must include all Must-have modules/features listed above.
+- Mobile-native app excluded from MVP (responsive web only).
+- No advanced ML forecasting in MVP.
+- No deep external integrations in MVP.
+- Scope governance via MoSCoW; Should/Could deferred.
+
+Open decisions / blockers (highest architectural impact)
+- Final KPI set for agent analytics (definitions affect event schema, storage model, and computation pipeline).
+- Final real-time SLA and stale threshold (1s/3s/5s) impacts infra sizing, buffering, and UX timing.
+- Auth/RBAC depth for MVP (minimal auth vs role-limited) impacts security design and routing guards.
+- Supported document formats (Markdown/PDF/JSON/etc.) impacts viewer stack and storage/serving strategy.
+- Kanban interaction mode (read-only vs editable) impacts command/write path, audit logging, and conflict handling.
+- Data retention window (30/90/180 days) impacts SQLite capacity, indexing, and archival strategy.
+- Capacity target (max concurrent users/workflows) needed before performance test planning.
+
+Key risks to design for
+- WebSocket instability causing misleading stale data.
+- State divergence across modules undermining trust.
+- SQLite write contention causing update lag.
+- Scope creep in analytics/auth/Kanban editability.
+
+Release phasing implications for architecture
+- Phase 0: finalize open decisions and KPI/SLA glossary before deep implementation.
+- Phase 1 (MVP build): prioritize unified shell + real-time reliability primitives + consistency model.
+- Phase 2 (hardening): UAT, telemetry/lineage verification, perf/reliability validation vs capacity target.
+- MVP go/no-go requires Must-have acceptance, SLA validation, consistency targets, dark/responsive UAT pass, and resolved open decisions.

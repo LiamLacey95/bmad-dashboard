@@ -1,0 +1,96 @@
+{
+  "story": "story-002-real-time-workflow-monitoring-and-reliability.md",
+  "overall_verdict": "PASS",
+  "summary": "All six acceptance criteria are implemented and validated by a combination of code inspection and automated tests (19/19 passing). Real-time workflow updates, blocked/failed filtering, timeline rendering with error/empty retry states, heartbeat, reconnect backoff, and reconnect resync/stale-clearing behavior are present. Residual risk remains around missing direct WebSocket lifecycle integration tests and explicit SLA latency assertions.",
+  "criteria_checked": 6,
+  "criteria_passed": 6,
+  "criteria_failed": 0,
+  "criteria": [
+    {
+      "id": 1,
+      "description": "Workflow list shows ID/name, owner, status, and last transition timestamp from API and live updates.",
+      "verdict": "PASS",
+      "evidence": "UI renders workflow name+id, owner, status, and last transition columns in src/client/features/workflows/WorkflowsPage.tsx:172, src/client/features/workflows/WorkflowsPage.tsx:193, src/client/features/workflows/WorkflowsPage.tsx:196, src/client/features/workflows/WorkflowsPage.tsx:199, src/client/features/workflows/WorkflowsPage.tsx:202. Initial list comes from API fetch in src/client/features/workflows/WorkflowsPage.tsx:65 and src/client/features/workflows/WorkflowsPage.tsx:70. Live event updates mutate list state in src/client/features/workflows/liveState.ts:64 and src/client/features/workflows/liveState.ts:81."
+    },
+    {
+      "id": 2,
+      "description": "Blocked/failed filter shows only matching workflows and updates within SLA when states change.",
+      "verdict": "PASS",
+      "evidence": "Blocked/failed filter UI and state switch exist in src/client/features/workflows/WorkflowsPage.tsx:157 and src/client/features/workflows/WorkflowsPage.tsx:161. Filtering logic enforces blocked|failed only in src/client/features/workflows/liveState.ts:221. Live events immediately update workflow status/list in src/client/features/workflows/liveState.ts:69 and src/client/features/workflows/liveState.ts:81, so active filters react without refresh. Automated check for filter correctness: tests/client/workflow-live-state.test.ts:11-41."
+    },
+    {
+      "id": 3,
+      "description": "Workflow detail shows ordered transitions with blocked/failed transitions visually distinct.",
+      "verdict": "PASS",
+      "evidence": "Transition ordering is ascending by timestamp in reducer and repo paths: src/client/features/workflows/liveState.ts:39, src/client/features/workflows/liveState.ts:131, src/server/dal/inMemoryWorkflowRepository.ts:81. Timeline visual distinction for blocked/failed transitions is implemented in src/client/features/workflows/WorkflowsPage.tsx:31, src/client/features/workflows/WorkflowsPage.tsx:35, and applied at src/client/features/workflows/WorkflowsPage.tsx:260. Route-level ordering test exists in tests/server/workflow-routes.test.ts:78-100."
+    },
+    {
+      "id": 4,
+      "description": "WebSocket client sends heartbeat every configured interval, detects disconnect, and auto-reconnects with bounded exponential backoff.",
+      "verdict": "PASS",
+      "evidence": "Heartbeat interval defaults to 15s and sends heartbeat messages in src/client/features/workflows/workflowRealtimeClient.ts:93-96. Disconnect handling occurs on socket close/error in src/client/features/workflows/workflowRealtimeClient.ts:56-67. Auto-reconnect scheduling with attempt cap and backoff is implemented in src/client/features/workflows/workflowRealtimeClient.ts:109-120 and src/client/features/workflows/liveState.ts:224-229. Backoff bounds are unit-tested in tests/client/workflow-live-state.test.ts:97-103."
+    },
+    {
+      "id": 5,
+      "description": "On reconnect, client performs resync and only clears stale indicators after successful sync plus fresh event receipt.",
+      "verdict": "PASS",
+      "evidence": "Client sends resync_request with lastAckEventId at connection open in src/client/features/workflows/workflowRealtimeClient.ts:44. Reconnect resync source-of-truth uses replay/snapshot after ack in src/server/realtime/workflowWebSocketGateway.ts:153-159 and emits sync_status in src/server/realtime/workflowWebSocketGateway.ts:162-168. Client stale-clearing requires successful sync and fresh event (not sync alone) in src/client/features/workflows/liveState.ts:77, src/client/features/workflows/liveState.ts:86, and src/client/features/workflows/liveState.ts:193-199. Behavior is unit-tested in tests/client/workflow-live-state.test.ts:43-95."
+    },
+    {
+      "id": 6,
+      "description": "If timeline data is missing/corrupt, UI shows explicit error/empty state with retry action.",
+      "verdict": "PASS",
+      "evidence": "Corrupt timeline path throws explicit error in src/server/dal/inMemoryWorkflowRepository.ts:70-78 and is covered by tests/server/workflow-routes.test.ts:102-116. UI error state and retry button are in src/client/features/workflows/WorkflowsPage.tsx:225-237. Empty state and retry action are in src/client/features/workflows/WorkflowsPage.tsx:240-252."
+    }
+  ],
+  "issues_found": [
+    {
+      "severity": "low",
+      "description": "No direct automated test targets WorkflowRealtimeClient socket lifecycle (open/auth/subscribe/resync handshake, heartbeat send cadence, reconnect retry cap behavior).",
+      "recommendation": "Add focused unit tests for src/client/features/workflows/workflowRealtimeClient.ts with a mocked WebSocket and fake timers to verify message ordering, heartbeat emission, reconnect scheduling, and max-attempt stop conditions."
+    },
+    {
+      "severity": "low",
+      "description": "No explicit automated assertion of an event-to-UI latency SLA, despite story language referencing SLA/freshness targets.",
+      "recommendation": "Define a measurable latency threshold and add integration or component tests that validate update timing against that threshold using controlled timers/events."
+    }
+  ],
+  "test_results": {
+    "tests_run": 19,
+    "tests_passed": 19,
+    "tests_failed": 0,
+    "details": [
+      {
+        "test": "tests/server/app.test.ts",
+        "result": "pass",
+        "note": "7 tests passed"
+      },
+      {
+        "test": "tests/client/workflow-live-state.test.ts",
+        "result": "pass",
+        "note": "3 tests passed"
+      },
+      {
+        "test": "tests/server/workflow-routes.test.ts",
+        "result": "pass",
+        "note": "3 tests passed"
+      },
+      {
+        "test": "tests/server/workflow-realtime-hub.test.ts",
+        "result": "pass",
+        "note": "2 tests passed"
+      },
+      {
+        "test": "tests/client/app-shell.test.tsx",
+        "result": "pass",
+        "note": "4 tests passed"
+      }
+    ]
+  },
+  "code_quality_notes": [
+    "WebSocket message contracts are strongly typed in src/shared/workflows.ts and consistently used across client/server realtime paths.",
+    "State management cleanly centralizes stale/sync/reconnect logic in src/client/features/workflows/liveState.ts, which improves reasoning and testability.",
+    "Timeline UI includes explicit empty and error states with retry actions, which is robust UX for degraded data conditions.",
+    "Coverage is solid at reducer/route level, but direct client WebSocket lifecycle tests are still missing and represent the main regression risk area."
+  ]
+}
