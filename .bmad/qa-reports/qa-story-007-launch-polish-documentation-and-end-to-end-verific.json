@@ -1,7 +1,7 @@
 {
   "story": "story-007-launch-polish-documentation-and-end-to-end-verific.md",
   "overall_verdict": "FAIL",
-  "summary": "Automated suites for core server/client flows are present and passing, and required operational documentation files were produced, but Story 007 does not fully meet exit quality gates because reconnect/resync automation is incomplete and the UAT checklist is not executed (all checklist evidence items remain unchecked).",
+  "summary": "Core Story 007 automated suites pass (9 files, 40 tests), and observability/operations documentation exists, but release quality gates are not fully met because UAT evidence remains entirely unchecked and reconnect/resync automation is only partially covered (no integration-level assertion of resync replay behavior).",
   "criteria_checked": 5,
   "criteria_passed": 3,
   "criteria_failed": 2,
@@ -10,65 +10,100 @@
       "id": 1,
       "description": "Automated test suites cover critical flows: workflow real-time updates, reconnect/resync, cost windows, analytics outliers, document fallback, and sync status.",
       "verdict": "PARTIAL",
-      "evidence": "Passing automated coverage exists for workflow/event contracts and stale/sync behavior (tests/server/workflow-websocket-gateway.test.ts:15-104, tests/client/workflow-live-state.test.ts:43-95), cost windows and analytics outliers (tests/server/cost-analytics-routes.test.ts:58-197, tests/client/cost-analytics-pages.test.tsx:273-314), document fallback (tests/server/document-routes.test.ts:107-127, tests/client/documents-page.test.tsx:166-175), and sync status (tests/server/project-kanban-sync-routes.test.ts:133-155, tests/server/sqlite-persistence-and-projection.test.ts:123-167). However, no tests directly exercise WS `resync_request` handling in src/server/realtime/workflowWebSocketGateway.ts:163-193 (no `resync_request` matches under tests/ via rg)."
+      "evidence": "Passing suites validate workflow WS protocol primitives and stale/sync reducer behavior (`tests/server/workflow-websocket-gateway.test.ts:24`, `tests/client/workflow-live-state.test.ts:43`), cost windows/outliers (`tests/server/cost-analytics-routes.test.ts:58`, `tests/server/cost-analytics-routes.test.ts:169`), document fallback (`tests/server/document-routes.test.ts:107`, `tests/client/documents-page.test.tsx`), and sync status (`tests/server/project-kanban-sync-routes.test.ts:133`, `tests/server/sqlite-persistence-and-projection.test.ts:123`). Gap: no test asserts end-to-end `resync_request` handling against the gateway path in `src/server/realtime/workflowWebSocketGateway.ts:163`."
     },
     {
       "id": 2,
       "description": "UAT checklist validates primary journeys and confirms dark/light parity on critical tasks.",
       "verdict": "FAIL",
-      "evidence": "Checklist exists but is not executed: all journey/theme/responsive/evidence entries remain unchecked in src/ops/uat-checklist.md:7-32, including required screenshot/recording/test-run artifact capture lines at src/ops/uat-checklist.md:30-32."
+      "evidence": "All UAT checklist entries remain unchecked, including primary journeys, theme parity, responsive checks, and evidence capture (`src/ops/uat-checklist.md:7`, `src/ops/uat-checklist.md:18`, `src/ops/uat-checklist.md:25`, `src/ops/uat-checklist.md:30`)."
     },
     {
       "id": 3,
       "description": "Observability dashboards and alerts are configured for freshness, stale sessions, sync failures, and lock contention.",
       "verdict": "PASS",
-      "evidence": "Story documentation defines required metrics, dashboard panels, and alert rules covering freshness, stale sessions, sync failures, and lock contention in src/ops/observability-dashboard-and-alerts.md:3-48. Metric primitives supporting these signals exist in src/server/observability/metrics.ts:13-45 and API duration instrumentation is present in src/server/middleware/observability.ts:5-26."
+      "evidence": "Documented metrics and alert rules include freshness (`event_to_ui_latency_ms`), stale session ratio, sync failures, cross-view consistency failures, and SQLite lock contention (`src/ops/observability-dashboard-and-alerts.md:4`, `src/ops/observability-dashboard-and-alerts.md:34`, `src/ops/observability-dashboard-and-alerts.md:38`, `src/ops/observability-dashboard-and-alerts.md:42`, `src/ops/observability-dashboard-and-alerts.md:46`)."
     },
     {
       "id": 4,
       "description": "Documentation is published for setup, architecture, API/WS contracts, and operational runbook.",
       "verdict": "PASS",
-      "evidence": "Operational documentation is present with setup/startup steps, architecture boundaries, API and WS contract reference, KPI glossary assumptions, backup/restore steps, and incident triage in src/ops/operations-runbook.md:3-60. Phase-0 decision tracking is present in src/ops/decision-register.md:5-13."
+      "evidence": "Operations runbook includes setup/startup steps, architecture boundaries, REST/WS contract summary, backup/restore, and incident triage (`src/ops/operations-runbook.md:3`, `src/ops/operations-runbook.md:16`, `src/ops/operations-runbook.md:24`, `src/ops/operations-runbook.md:42`, `src/ops/operations-runbook.md:52`)."
     },
     {
       "id": 5,
       "description": "MVP exit criteria mapping is documented with pass/fail evidence for each criterion.",
       "verdict": "PASS",
-      "evidence": "Mapped criterion table with explicit status and evidence links is documented in src/ops/mvp-exit-criteria-evidence.md:5-18."
+      "evidence": "Exit criteria matrix with status and evidence references is present (`src/ops/mvp-exit-criteria-evidence.md:5`). Decision carryovers are tracked separately as requested (`src/ops/decision-register.md:5`)."
     }
   ],
   "issues_found": [
     {
       "severity": "high",
-      "description": "UAT validation is not completed; the checklist is a template only with no checked outcomes or attached evidence artifacts.",
-      "recommendation": "Execute UAT against all listed journeys and theme/responsive checks, then update src/ops/uat-checklist.md with completed checks and link artifacts (screenshots, reconnect recording, latest test run output)."
+      "description": "UAT execution evidence is missing; checklist is documented but not performed.",
+      "recommendation": "Execute UAT against current build, check off each item in `src/ops/uat-checklist.md`, and attach concrete artifacts (screenshots, reconnect/resync recording, and test run link)."
     },
     {
       "severity": "medium",
-      "description": "Reconnect/resync automation does not verify runtime `resync_request` behavior despite production logic handling it.",
-      "recommendation": "Add WS gateway protocol tests that send `resync_request` and assert replay/snapshot fallback plus `sync_status` transitions and reconnect metric increments for both workflow and sync topics."
+      "description": "Reconnect/resync automation lacks integration-level verification of `resync_request` replay/snapshot behavior through the WebSocket gateway.",
+      "recommendation": "Add a WebSocket integration test that opens `/ws`, subscribes, forces disconnect/reconnect, sends `resync_request` with `lastAckEventId`, and asserts `sync_status` transitions plus replay-or-snapshot delivery semantics."
     }
   ],
   "test_results": {
-    "tests_run": 44,
-    "tests_passed": 44,
+    "tests_run": 9,
+    "tests_passed": 9,
     "tests_failed": 0,
     "details": [
       {
-        "test": "npm test -- tests/server/workflow-websocket-gateway.test.ts tests/server/cost-analytics-routes.test.ts tests/server/document-routes.test.ts tests/server/project-kanban-sync-routes.test.ts tests/server/sqlite-persistence-and-projection.test.ts tests/client/workflow-live-state.test.ts tests/client/cost-analytics-pages.test.tsx tests/client/documents-page.test.tsx",
+        "test": "tests/server/workflow-websocket-gateway.test.ts",
         "result": "pass",
-        "note": "8 files passed, 33 tests passed, 0 failed (Vitest duration 2.44s)."
+        "note": "4 tests passed"
       },
       {
-        "test": "npm test -- tests/server/app.test.ts tests/client/app-shell.test.tsx",
+        "test": "tests/server/cost-analytics-routes.test.ts",
         "result": "pass",
-        "note": "2 files passed, 11 tests passed, 0 failed (Vitest duration 1.37s)."
+        "note": "8 tests passed"
+      },
+      {
+        "test": "tests/server/document-routes.test.ts",
+        "result": "pass",
+        "note": "4 tests passed"
+      },
+      {
+        "test": "tests/server/project-kanban-sync-routes.test.ts",
+        "result": "pass",
+        "note": "5 tests passed"
+      },
+      {
+        "test": "tests/server/sqlite-persistence-and-projection.test.ts",
+        "result": "pass",
+        "note": "3 tests passed"
+      },
+      {
+        "test": "tests/client/workflow-live-state.test.ts",
+        "result": "pass",
+        "note": "4 tests passed"
+      },
+      {
+        "test": "tests/client/cost-analytics-pages.test.tsx",
+        "result": "pass",
+        "note": "3 tests passed"
+      },
+      {
+        "test": "tests/client/documents-page.test.tsx",
+        "result": "pass",
+        "note": "2 tests passed"
+      },
+      {
+        "test": "tests/server/app.test.ts",
+        "result": "pass",
+        "note": "7 tests passed"
       }
     ]
   },
   "code_quality_notes": [
-    "Server and client coverage for cost, analytics, documents, sync status, and workflow live-state logic is strong and currently green.",
-    "WS protocol validation covers payload shape creation (`snapshot/event/stale_state/sync_status/error`) but not full reconnect message flow execution.",
-    "Documentation set is complete and coherent for operations/readiness, but QA evidence discipline is weak because UAT sign-off artifacts are missing."
+    "Automated server/client coverage is broad across API contracts, WebSocket protocol primitives, persistence hardening, and UI fallback behavior.",
+    "Observability and ops documentation is specific and operationally useful (metrics, thresholds, triage, backup/restore).",
+    "Test run emits React Router v7 future-flag warnings in client tests; not blocking, but should be cleaned up to reduce CI noise."
   ]
 }
