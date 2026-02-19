@@ -1,4 +1,14 @@
 import type {
+  AgentOutliersPayload,
+  AgentTrendsPayload,
+  CostBucket,
+  CostSummaryPayload,
+  CostTimeseriesPayload,
+  CostWindowType,
+  KpiDefinition,
+  LineagePayload
+} from '../../shared/costAnalytics.js';
+import type {
   ConsistencyWarning,
   KanbanBoard,
   ProjectContext,
@@ -62,6 +72,44 @@ export interface DeliveryRepository {
   updateStoryStatus(input: StoryStatusUpdateInput): Promise<StoryStatusChange>;
   getSyncStatus(): Promise<SyncModuleStatus[]>;
   setSyncStatus(status: SyncModuleStatus): Promise<void>;
+}
+
+export interface CostSummaryQuery {
+  window: CostWindowType;
+  start: string;
+  end: string;
+  projectId?: string;
+}
+
+export interface CostTimeseriesQuery {
+  bucket: CostBucket;
+  start: string;
+  end: string;
+  projectId?: string;
+}
+
+export interface AgentTrendsQuery {
+  agentIds: string[];
+  kpis: string[];
+  start: string;
+  end: string;
+}
+
+export interface AgentOutliersQuery {
+  agentIds: string[];
+  kpi: string;
+  start: string;
+  end: string;
+}
+
+export interface CostAnalyticsRepository {
+  getCostSummary(query: CostSummaryQuery): Promise<CostSummaryPayload>;
+  getCostTimeseries(query: CostTimeseriesQuery): Promise<CostTimeseriesPayload>;
+  getAgentTrends(query: AgentTrendsQuery): Promise<AgentTrendsPayload>;
+  getAgentOutliers(query: AgentOutliersQuery): Promise<AgentOutliersPayload>;
+  getLineageByRef(lineageRef: string): Promise<LineagePayload | null>;
+  getKpis(): Promise<KpiDefinition[]>;
+  getSqliteIndexStatements(): string[];
 }
 
 export interface ConsistencyMonitor {
