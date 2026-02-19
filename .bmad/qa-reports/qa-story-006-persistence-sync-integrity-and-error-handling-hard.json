@@ -1,0 +1,79 @@
+{
+  "story": "story-006-persistence-sync-integrity-and-error-handling-hard.md",
+  "overall_verdict": "PASS",
+  "summary": "Story 006 implementation satisfies all acceptance criteria: SQLite schema/migrations and indexes are present, DAL lock retry and busy-timeout policy is implemented, projection jobs populate read models with lineage, sync status API returns required module details, REST/WS error contracts include recoverability context, and UI surfaces stale/sync failures with recovery actions and timestamps. Full test suite passed (48/48).",
+  "criteria_checked": 6,
+  "criteria_passed": 6,
+  "criteria_failed": 0,
+  "criteria": [
+    {
+      "id": 1,
+      "description": "SQLite schema and migrations create all MVP core tables, constraints, and required indexes.",
+      "verdict": "PASS",
+      "evidence": "Core tables and constraints exist in src/server/dal/sqlite/schema.sql:59 (domain_events), :77 (workflow_transitions), :88 (cost_events), :103 (agent_metrics), :115 (agent_outliers), :125 (documents), :141 (sync_state). Required indexes are created in src/server/dal/sqlite/schema.sql:233-248 (including idx_domain_events_entity_time). Migration execution is wired in src/server/dal/sqlite/migrations.ts:6-27. Verified by tests/server/sqlite-persistence-and-projection.test.ts:55-83."
+    },
+    {
+      "id": 2,
+      "description": "DAL uses parameterized queries and retry/busy-timeout policy for transient lock errors.",
+      "verdict": "PASS",
+      "evidence": "SQLite context sets WAL and busy timeout in src/server/dal/sqlite/database.ts:17-20. Retry policy handles SQLITE_BUSY/SQLITE_LOCKED with exponential backoff and DB_LOCK_TIMEOUT recoverable error in src/server/dal/sqlite/database.ts:8,46-78. Representative parameterized DAL queries in src/server/dal/sqlite/sqliteWorkflowRepository.ts:57-83, :94-96, :103-110, :154-172 and src/server/dal/sqlite/sqliteDeliveryRepository.ts:410-413, :423-425, :448-453. Retry behavior verified by tests/server/sqlite-persistence-and-projection.test.ts:104-121."
+    },
+    {
+      "id": 3,
+      "description": "Projection jobs update read models for workflow/project/story/cost/analytics with traceable lineage.",
+      "verdict": "PASS",
+      "evidence": "Projection runner updates workflow/story/project/cost/analytics aggregates in src/server/services/projectionJobs.ts:16-24, with lineage refs in :63-64 (workflow), :88-89 (story), :135-136 (project), :176-178 (cost), :224-234 (analytics). Additional sync failure tracking is present in :238-252. Test evidence validates projected lineage in tests/server/sqlite-persistence-and-projection.test.ts:84-98."
+    },
+    {
+      "id": 4,
+      "description": "GET /sync/status returns module-level status, last successful sync, last attempt, and error details.",
+      "verdict": "PASS",
+      "evidence": "Endpoint is exposed at src/server/routes/syncRoutes.ts:7-10 and delegates to consistency monitor payload containing module statuses. Sync status model includes module, status, lastSuccessfulSyncAtUtc, lastAttemptAtUtc, errorMessage, staleReason in src/shared/delivery.ts:108-115. Repository retrieval maps all fields in src/server/dal/sqlite/sqliteDeliveryRepository.ts:607-624. Verified by tests/server/sqlite-persistence-and-projection.test.ts:123-167 (asserts lastAttemptAtUtc, errorMessage, staleReason)."
+    },
+    {
+      "id": 5,
+      "description": "REST and WS errors follow a consistent contract including code, message, and recoverability context.",
+      "verdict": "PASS",
+      "evidence": "REST error envelope includes code/message/recoverable/requestId/timestamp/context in src/server/middleware/errorHandler.ts:19-28. WS error contract type includes code/message/recoverable/requestId/timestamp/context in src/shared/workflows.ts:82-90, with concrete WS error emissions in src/server/realtime/workflowWebSocketGateway.ts:146-156 and :229-238. REST envelope behavior is validated in tests/server/app.test.ts:184-201."
+    },
+    {
+      "id": 6,
+      "description": "UI surfaces stale/sync failures with actionable recovery actions and timestamps.",
+      "verdict": "PASS",
+      "evidence": "UI computes stale/syncing modules and actionable recovery items with timestamps in src/client/components/AppShell.tsx:16-40 and renders them in :78-97 (including 'Last known update' and 'Action'). Websocket stale/sync state ingestion supports freshness updates in src/client/features/workflows/liveState.ts:231-245. UI behavior is covered by tests/client/app-shell.test.tsx:139-147 (stale modules, recovery actions)."
+    }
+  ],
+  "issues_found": [],
+  "test_results": {
+    "tests_run": 48,
+    "tests_passed": 48,
+    "tests_failed": 0,
+    "details": [
+      {
+        "test": "npm test (vitest run)",
+        "result": "pass",
+        "note": "13 test files passed, 48 tests passed, duration 3.39s"
+      },
+      {
+        "test": "tests/server/sqlite-persistence-and-projection.test.ts",
+        "result": "pass",
+        "note": "3 tests passed: schema/index projection lineage, sqlite retry lock handling, sync status details"
+      },
+      {
+        "test": "tests/server/app.test.ts",
+        "result": "pass",
+        "note": "7 tests passed including standardized REST error envelope"
+      },
+      {
+        "test": "tests/client/app-shell.test.tsx",
+        "result": "pass",
+        "note": "4 tests passed including stale/sync recovery banner behavior"
+      }
+    ]
+  },
+  "code_quality_notes": [
+    "Implementation is strongly test-backed for Story-006 behaviors, including direct coverage for sqlite retry logic, projection lineage, and sync endpoint fields.",
+    "UTC timestamp fields are consistently used in schema and message contracts (e.g., occurred_at_utc, ingested_at_utc, timestampUtc).",
+    "Observability hooks for reliability metrics are present (sqlite write lock wait, sync failure counts, stale session ratio) via metrics registry usage in database/projection/websocket paths."
+  ]
+}
