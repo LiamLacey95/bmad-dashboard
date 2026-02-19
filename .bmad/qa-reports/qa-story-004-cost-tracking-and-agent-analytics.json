@@ -1,0 +1,98 @@
+{
+  "story": "story-004-cost-tracking-and-agent-analytics.md",
+  "overall_verdict": "PASS",
+  "summary": "Story 004 meets all acceptance criteria and technical notes based on code review and automated tests. Cost summary/timeseries windows are synchronized, invalid custom windows return 422 validation feedback, missing cost data is explicitly unavailable, analytics supports multi-agent KPI trends with metadata, outliers are highlighted with lineage drilldown, and insufficient-data reasons are shown.",
+  "criteria_checked": 9,
+  "criteria_passed": 9,
+  "criteria_failed": 0,
+  "criteria": [
+    {
+      "id": 1,
+      "description": "Cost module shows aggregate total and per-project breakdown for selected window.",
+      "verdict": "PASS",
+      "evidence": "`GET /costs/summary` returns aggregate and project rows in `src/server/dal/inMemoryCostAnalyticsRepository.ts:352` and `src/server/dal/inMemoryCostAnalyticsRepository.ts:367`; UI renders both in `src/client/features/costs/CostsPage.tsx:240` and `src/client/features/costs/CostsPage.tsx:251`; route test validates payload shape in `tests/server/cost-analytics-routes.test.ts:58`."
+    },
+    {
+      "id": 2,
+      "description": "Time-window selection updates all cost widgets consistently.",
+      "verdict": "PASS",
+      "evidence": "Single `appliedWindow` state drives both summary and timeseries requests in one `Promise.all` call (`src/client/features/costs/CostsPage.tsx:75`, `src/client/features/costs/CostsPage.tsx:82`), and preset/custom window updates feed `appliedWindow` (`src/client/features/costs/CostsPage.tsx:63`, `src/client/features/costs/CostsPage.tsx:147`)."
+    },
+    {
+      "id": 3,
+      "description": "Invalid custom window returns validation feedback and does not trigger broken query state.",
+      "verdict": "PASS",
+      "evidence": "Server validation rejects invalid windows with 422/VALIDATION_ERROR in `src/server/routes/costRoutes.ts:33` and `src/server/middleware/validation.ts:38`; validation test asserts 422 feedback in `tests/server/cost-analytics-routes.test.ts:89`; UI also blocks invalid custom range and shows feedback in `src/client/features/costs/CostsPage.tsx:141` and `tests/client/cost-analytics-pages.test.tsx:282`."
+    },
+    {
+      "id": 4,
+      "description": "Agent analytics supports multi-agent trend comparison with visible KPI units/definitions.",
+      "verdict": "PASS",
+      "evidence": "Trends endpoint accepts multiple `agentIds` and `kpis` (`src/server/routes/analyticsRoutes.ts:17`, `src/server/routes/analyticsRoutes.ts:18`), repository returns trend series and KPI metadata (`src/server/dal/inMemoryCostAnalyticsRepository.ts:439`, `src/server/dal/inMemoryCostAnalyticsRepository.ts:496`), and UI displays units and definitions (`src/client/features/analytics/AnalyticsPage.tsx:268`, `src/client/features/analytics/AnalyticsPage.tsx:282`); verified in `tests/server/cost-analytics-routes.test.ts:139`."
+    },
+    {
+      "id": 5,
+      "description": "Outliers are visually distinct and drill down to lineage details.",
+      "verdict": "PASS",
+      "evidence": "Outlier cards use distinct rose styling in `src/client/features/analytics/AnalyticsPage.tsx:300`; each outlier has `View lineage` action (`src/client/features/analytics/AnalyticsPage.tsx:308`) that loads lineage drilldown (`src/client/features/analytics/AnalyticsPage.tsx:333`); lineage endpoint implemented in `src/server/routes/analyticsRoutes.ts:76`; validated in `tests/client/cost-analytics-pages.test.tsx:299` and `tests/server/cost-analytics-routes.test.ts:199`."
+    },
+    {
+      "id": 6,
+      "description": "When outlier calculation cannot run due to insufficient data, UI shows explicit reason.",
+      "verdict": "PASS",
+      "evidence": "Repository emits explicit insufficient-data reason with sample size/minimum required in `src/server/dal/inMemoryCostAnalyticsRepository.ts:522`; UI renders unavailable calculation reasons in `src/client/features/analytics/AnalyticsPage.tsx:320`; tests assert reason text in `tests/server/cost-analytics-routes.test.ts:169` and UI rendering in `tests/client/cost-analytics-pages.test.tsx:304`."
+    },
+    {
+      "id": 7,
+      "description": "Required backend endpoints are implemented and mounted: /costs/summary, /costs/timeseries, /analytics/agents/trends, /analytics/agents/outliers, /analytics/lineage/:lineageRef, /meta/kpis.",
+      "verdict": "PASS",
+      "evidence": "Routes are implemented in `src/server/routes/costRoutes.ts:87`, `src/server/routes/costRoutes.ts:105`, `src/server/routes/analyticsRoutes.ts:56`, `src/server/routes/analyticsRoutes.ts:66`, `src/server/routes/analyticsRoutes.ts:76`, and `src/server/routes/metaRoutes.ts:32`; routers are mounted in `src/server/app.ts:53`, `src/server/app.ts:56`, and `src/server/app.ts:57`."
+    },
+    {
+      "id": 8,
+      "description": "Missing cost data uses availability=\"unavailable\" and is not treated as zero.",
+      "verdict": "PASS",
+      "evidence": "Summary and timeseries set `totalCost: null` with `availability: 'unavailable'` in `src/server/dal/inMemoryCostAnalyticsRepository.ts:337`, `src/server/dal/inMemoryCostAnalyticsRepository.ts:365`, and `src/server/dal/inMemoryCostAnalyticsRepository.ts:410`; UI maps unavailable to explicit label in `src/client/features/costs/CostsPage.tsx:39`; verified by tests in `tests/server/cost-analytics-routes.test.ts:58` and `tests/client/cost-analytics-pages.test.tsx:273`."
+    },
+    {
+      "id": 9,
+      "description": "Required query-path indexes exist for cost_events and agent_metrics.",
+      "verdict": "PASS",
+      "evidence": "SQLite index statements are present in `src/server/dal/sqlite/indexes.sql:2` and `src/server/dal/sqlite/indexes.sql:5`; repository also exposes matching statements in `src/server/dal/inMemoryCostAnalyticsRepository.ts:600`; assertion exists in `tests/server/cost-analytics-routes.test.ts:241`."
+    }
+  ],
+  "issues_found": [
+    {
+      "severity": "low",
+      "description": "`CostsPage` custom window conversion calls `new Date(input).toISOString()` directly, which can throw for empty/invalid datetime-local input and bypass user-friendly validation.",
+      "recommendation": "Guard with `Number.isNaN(date.getTime())` before `toISOString()` and surface explicit validation feedback for malformed date input in addition to start/end ordering checks."
+    }
+  ],
+  "test_results": {
+    "tests_run": 50,
+    "tests_passed": 50,
+    "tests_failed": 0,
+    "details": [
+      {
+        "test": "vitest run tests/server/cost-analytics-routes.test.ts",
+        "result": "pass",
+        "note": "8/8 tests passed"
+      },
+      {
+        "test": "vitest run tests/client/cost-analytics-pages.test.tsx",
+        "result": "pass",
+        "note": "3/3 tests passed"
+      },
+      {
+        "test": "npm test (full suite)",
+        "result": "pass",
+        "note": "39/39 tests passed"
+      }
+    ]
+  },
+  "code_quality_notes": [
+    "Validation boundaries are explicit and consistent through shared `validateRequest` middleware with typed query schemas.",
+    "Cost and analytics client modules use a shared API layer (`costAnalyticsApi.ts`) and strong shared contracts (`src/shared/costAnalytics.ts`), reducing drift risk.",
+    "Coverage is strong for Story 004 at both route and page levels, including unavailable-data handling, outlier behavior, and lineage drilldown interactions."
+  ]
+}
