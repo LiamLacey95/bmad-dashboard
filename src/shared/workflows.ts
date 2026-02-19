@@ -1,8 +1,10 @@
 import type { CanonicalStatus } from './statusModel.js';
+import { PROJECT_MODULE, STORY_MODULE, SYNC_MODULE, type StoryStatusChange, type SyncStatusPayload } from './delivery.js';
 
 export const WORKFLOW_MODULE = 'workflow' as const;
 
 export type WorkflowModule = typeof WORKFLOW_MODULE;
+export type RealtimeModule = WorkflowModule | typeof PROJECT_MODULE | typeof STORY_MODULE | typeof SYNC_MODULE;
 
 export interface WorkflowSummary {
   id: string;
@@ -26,7 +28,7 @@ export interface WorkflowSnapshotData {
   workflows: WorkflowSummary[];
 }
 
-export interface WsSnapshotMessage {
+export interface WsWorkflowSnapshotMessage {
   type: 'snapshot';
   module: WorkflowModule;
   version: number;
@@ -49,9 +51,21 @@ export interface WsEventMessage {
   lineageRef: string;
 }
 
+export interface WsStoryEventMessage {
+  type: 'event';
+  eventId: string;
+  module: typeof STORY_MODULE;
+  entityType: 'story';
+  entityId: string;
+  eventType: 'story_status_changed';
+  occurredAt: string;
+  payload: StoryStatusChange;
+  lineageRef: string;
+}
+
 export interface WsStaleStateMessage {
   type: 'stale_state';
-  module: WorkflowModule;
+  module: RealtimeModule;
   isStale: boolean;
   lastSuccessfulUpdateAt: string | null;
   reason: string;
@@ -59,7 +73,7 @@ export interface WsStaleStateMessage {
 
 export interface WsSyncStatusMessage {
   type: 'sync_status';
-  module: WorkflowModule;
+  module: RealtimeModule;
   status: 'ok' | 'syncing' | 'error';
   lastSuccessfulSyncAt: string | null;
   error: string | null;
@@ -72,9 +86,19 @@ export interface WsErrorMessage {
   recoverable: boolean;
 }
 
+export interface WsSyncSnapshotMessage {
+  type: 'snapshot';
+  module: typeof SYNC_MODULE;
+  version: number;
+  generatedAt: string;
+  data: SyncStatusPayload;
+}
+
 export type ServerToClientMessage =
-  | WsSnapshotMessage
+  | WsWorkflowSnapshotMessage
+  | WsSyncSnapshotMessage
   | WsEventMessage
+  | WsStoryEventMessage
   | WsStaleStateMessage
   | WsSyncStatusMessage
   | WsErrorMessage;

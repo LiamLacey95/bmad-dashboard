@@ -1,6 +1,12 @@
 import type { Server } from 'node:http';
 import { WebSocketServer, type WebSocket } from 'ws';
-import { WORKFLOW_MODULE, type ClientToServerMessage, type ServerToClientMessage } from '../../shared/workflows.js';
+import { SYNC_MODULE } from '../../shared/delivery.js';
+import {
+  WORKFLOW_MODULE,
+  type ClientToServerMessage,
+  type RealtimeModule,
+  type ServerToClientMessage
+} from '../../shared/workflows.js';
 import type { WorkflowRealtimeHub } from './workflowRealtimeHub.js';
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
@@ -8,7 +14,7 @@ const HEARTBEAT_TIMEOUT_MS = HEARTBEAT_INTERVAL_MS * 2;
 
 interface Session {
   socket: WebSocket;
-  subscribedToWorkflow: boolean;
+  topics: Set<RealtimeModule>;
   lastHeartbeatAt: number;
   lastAckEventId: string | null;
   lastSuccessfulUpdateAt: string | null;
@@ -29,30 +35,46 @@ function sendMessage(socket: WebSocket, payload: ServerToClientMessage): void {
   socket.send(JSON.stringify(payload));
 }
 
+function isValidTopic(topic: string): topic is RealtimeModule {
+  return topic === WORKFLOW_MODULE || topic === 'story' || topic === 'project' || topic === SYNC_MODULE;
+}
+
+function sendSyncStatus(socket: WebSocket, module: RealtimeModule, status: 'ok' | 'syncing' | 'error'): void {
+  sendMessage(socket, {
+    type: 'sync_status',
+    module,
+    status,
+    lastSuccessfulSyncAt: status === 'ok' ? new Date().toISOString() : null,
+    error: null
+  });
+}
+
 export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowRealtimeHub) {
   const wss = new WebSocketServer({ server, path: '/ws' });
   const sessions = new Map<WebSocket, Session>();
 
   const unsubscribeFromHub = hub.onMessage((message) => {
-    if (message.type === 'event') {
-      sessions.forEach((session) => {
-        if (!session.subscribedToWorkflow) {
-          return;
-        }
-
-        session.lastAckEventId = message.eventId;
-        session.lastSuccessfulUpdateAt = message.occurredAt;
-
-        sendMessage(session.socket, message);
-        sendMessage(session.socket, {
-          type: 'stale_state',
-          module: WORKFLOW_MODULE,
-          isStale: false,
-          lastSuccessfulUpdateAt: message.occurredAt,
-          reason: 'fresh_event_received'
-        });
-      });
+    if (message.type !== 'event') {
+      return;
     }
+
+    sessions.forEach((session) => {
+      if (!session.topics.has(message.module)) {
+        return;
+      }
+
+      session.lastAckEventId = message.eventId;
+      session.lastSuccessfulUpdateAt = message.occurredAt;
+
+      sendMessage(session.socket, message);
+      sendMessage(session.socket, {
+        type: 'stale_state',
+        module: message.module,
+        isStale: false,
+        lastSuccessfulUpdateAt: message.occurredAt,
+        reason: 'fresh_event_received'
+      });
+    });
   });
 
   const heartbeatTicker = setInterval(() => {
@@ -62,12 +84,14 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
         return;
       }
 
-      sendMessage(socket, {
-        type: 'stale_state',
-        module: WORKFLOW_MODULE,
-        isStale: true,
-        lastSuccessfulUpdateAt: session.lastSuccessfulUpdateAt,
-        reason: 'heartbeat_timeout'
+      session.topics.forEach((topic) => {
+        sendMessage(socket, {
+          type: 'stale_state',
+          module: topic,
+          isStale: true,
+          lastSuccessfulUpdateAt: session.lastSuccessfulUpdateAt,
+          reason: 'heartbeat_timeout'
+        });
       });
 
       socket.close(4000, 'heartbeat_timeout');
@@ -78,7 +102,7 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
   wss.on('connection', (socket) => {
     const session: Session = {
       socket,
-      subscribedToWorkflow: false,
+      topics: new Set(),
       lastHeartbeatAt: Date.now(),
       lastAckEventId: null,
       lastSuccessfulUpdateAt: null
@@ -111,30 +135,25 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
       }
 
       if (parsed.type === 'subscribe') {
-        session.subscribedToWorkflow = parsed.topics.includes(WORKFLOW_MODULE);
-        if (!session.subscribedToWorkflow) {
-          return;
-        }
+        session.topics = new Set(parsed.topics.filter(isValidTopic));
 
-        sendMessage(socket, {
-          type: 'sync_status',
-          module: WORKFLOW_MODULE,
-          status: 'syncing',
-          lastSuccessfulSyncAt: null,
-          error: null
-        });
+        await Promise.all(
+          [...session.topics].map(async (topic) => {
+            sendSyncStatus(socket, topic, 'syncing');
 
-        const snapshot = await hub.getSnapshotMessage();
-        sendMessage(socket, snapshot);
+            if (topic === WORKFLOW_MODULE) {
+              const snapshot = await hub.getSnapshotMessage('workflow');
+              sendMessage(socket, snapshot);
+            }
 
-        const syncAt = new Date().toISOString();
-        sendMessage(socket, {
-          type: 'sync_status',
-          module: WORKFLOW_MODULE,
-          status: 'ok',
-          lastSuccessfulSyncAt: syncAt,
-          error: null
-        });
+            if (topic === SYNC_MODULE) {
+              const syncSnapshot = await hub.getSnapshotMessage('sync');
+              sendMessage(socket, syncSnapshot);
+            }
+
+            sendSyncStatus(socket, topic, 'ok');
+          })
+        );
 
         return;
       }
@@ -142,30 +161,32 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
       if (parsed.type === 'resync_request') {
         session.lastAckEventId = parsed.lastAckEventId;
 
-        sendMessage(socket, {
-          type: 'sync_status',
-          module: WORKFLOW_MODULE,
-          status: 'syncing',
-          lastSuccessfulSyncAt: null,
-          error: null
-        });
+        await Promise.all(
+          [...session.topics].map(async (topic) => {
+            sendSyncStatus(socket, topic, 'syncing');
 
-        const replayMessages = hub.getMessagesAfter(parsed.lastAckEventId);
-        if (!replayMessages.length) {
-          const snapshot = await hub.getSnapshotMessage();
-          sendMessage(socket, snapshot);
-        } else {
-          replayMessages.forEach((message) => sendMessage(socket, message));
-        }
+            if (topic === WORKFLOW_MODULE || topic === 'story') {
+              const replayMessages = hub
+                .getMessagesAfter(parsed.lastAckEventId)
+                .filter((message) => message.type === 'event' && message.module === topic);
 
-        const syncAt = new Date().toISOString();
-        sendMessage(socket, {
-          type: 'sync_status',
-          module: WORKFLOW_MODULE,
-          status: 'ok',
-          lastSuccessfulSyncAt: syncAt,
-          error: null
-        });
+              if (!replayMessages.length && topic === WORKFLOW_MODULE) {
+                const snapshot = await hub.getSnapshotMessage('workflow');
+                sendMessage(socket, snapshot);
+              }
+
+              replayMessages.forEach((message) => sendMessage(socket, message));
+            }
+
+            if (topic === SYNC_MODULE) {
+              const syncSnapshot = await hub.getSnapshotMessage('sync');
+              sendMessage(socket, syncSnapshot);
+            }
+
+            sendSyncStatus(socket, topic, 'ok');
+          })
+        );
+
         return;
       }
 

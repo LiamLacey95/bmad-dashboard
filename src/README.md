@@ -38,11 +38,32 @@ Frontend runs on `http://localhost:5173` and proxies `/api/*` to backend (`http:
   ```bash
   curl "http://localhost:3001/api/v1/workflows/wf-1002/transitions?limit=10"
   ```
+- Project list:
+  ```bash
+  curl "http://localhost:3001/api/v1/projects"
+  ```
+- Project context:
+  ```bash
+  curl "http://localhost:3001/api/v1/projects/project-core/context"
+  ```
+- Kanban board:
+  ```bash
+  curl "http://localhost:3001/api/v1/kanban/board"
+  ```
+- Sync and consistency status:
+  ```bash
+  curl "http://localhost:3001/api/v1/sync/status"
+  ```
 
 ## Realtime protocol
 - WebSocket endpoint: `ws://localhost:3001/ws` (or `wss://<host>/ws`)
 - Client messages: `auth`, `subscribe`, `heartbeat`, `resync_request`
+- `subscribe.topics` supports: `workflow`, `project`, `story`, `sync`
 - Server messages: `snapshot`, `event`, `stale_state`, `sync_status`, `error`
+
+## Kanban mode flag
+- MVP defaults to read-only Kanban.
+- Set `KANBAN_EDITABLE=true` to enable the `PATCH /api/v1/stories/:id/status` transition route.
 
 ## Test
 ```bash
