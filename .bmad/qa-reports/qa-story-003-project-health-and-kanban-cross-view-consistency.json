@@ -1,75 +1,79 @@
 {
   "story": "story-003-project-health-and-kanban-cross-view-consistency.md",
-  "overall_verdict": "FAIL",
-  "summary": "Core delivery endpoints, Kanban rendering, consistency warning display, and MVP read-only gating are implemented and covered by passing automated tests; however, two acceptance criteria are not fully met: project detail context is rendered as plain text instead of navigable links, and workflow view does not react to story status events for cross-view synchronization.",
+  "overall_verdict": "PASS",
+  "summary": "Story 003 implementation now satisfies all acceptance criteria: project health and detail links are present, Kanban read-only behavior and column/card rendering are correct, story event synchronization updates project/kanban/workflow state, and consistency warnings include module plus last successful sync timestamp.",
   "criteria_checked": 6,
-  "criteria_passed": 4,
-  "criteria_failed": 2,
+  "criteria_passed": 6,
+  "criteria_failed": 0,
   "criteria": [
     {
       "id": 1,
       "description": "Project list displays required fields with clear overdue/risk visual states.",
       "verdict": "PASS",
-      "evidence": "UI table shows owner/status/progress/due fields and explicit risk/overdue indicators in `src/client/features/delivery/ProjectsPage.tsx:299`, `src/client/features/delivery/ProjectsPage.tsx:306`, `src/client/features/delivery/ProjectsPage.tsx:315`, `src/client/features/delivery/ProjectsPage.tsx:325`; API route present at `src/server/routes/projectRoutes.ts:34`; route test validates risk and overdue flags in `tests/server/project-kanban-sync-routes.test.ts:61`; client test validates visible indicators in `tests/client/delivery-pages.test.tsx` (test: renders project health list and context details)."
+      "evidence": "Project table renders owner, status, progress, due date; risk and overdue indicators are explicitly displayed in UI (`src/client/features/delivery/ProjectsPage.tsx:295`, `src/client/features/delivery/ProjectsPage.tsx:322`, `src/client/features/delivery/ProjectsPage.tsx:332`). Route-level test validates risk/overdue fields in payload (`tests/server/project-kanban-sync-routes.test.ts:61`)."
     },
     {
       "id": 2,
       "description": "Project detail includes context links to related stories, workflows, and documents.",
-      "verdict": "FAIL",
-      "evidence": "Project detail renders related stories/workflows/documents as plain list text, without link targets or anchor/button navigation elements in `src/client/features/delivery/ProjectsPage.tsx:358`, `src/client/features/delivery/ProjectsPage.tsx:370`, `src/client/features/delivery/ProjectsPage.tsx:381`."
+      "verdict": "PASS",
+      "evidence": "Project detail renders navigable `Link` targets for story/workflow/document context (`src/client/features/delivery/ProjectsPage.tsx:364`, `src/client/features/delivery/ProjectsPage.tsx:381`, `src/client/features/delivery/ProjectsPage.tsx:398`). UI test asserts all three links and href targets (`tests/client/delivery-pages.test.tsx:217`). Endpoint support is present for detail/context retrieval (`src/server/routes/projectRoutes.ts:55`, `src/server/routes/projectRoutes.ts:72`)."
     },
     {
       "id": 3,
       "description": "Kanban board renders configured columns and cards showing title/ID, owner, and status metadata.",
       "verdict": "PASS",
-      "evidence": "Server returns board columns and cards via `GET /kanban/board` in `src/server/routes/kanbanRoutes.ts:12` backed by canonical column config in `src/server/dal/inMemoryDeliveryRepository.ts:51`; UI renders column sections and card metadata (title, story ID, owner, status) in `src/client/features/delivery/KanbanPage.tsx:257`, `src/client/features/delivery/KanbanPage.tsx:267`, `src/client/features/delivery/KanbanPage.tsx:269`, `src/client/features/delivery/KanbanPage.tsx:271`, `src/client/features/delivery/KanbanPage.tsx:272`; validated by `tests/server/project-kanban-sync-routes.test.ts:107`."
+      "evidence": "Kanban renders columns and card metadata including title, story ID, owner, and status (`src/client/features/delivery/KanbanPage.tsx:257`, `src/client/features/delivery/KanbanPage.tsx:267`, `src/client/features/delivery/KanbanPage.tsx:271`, `src/client/features/delivery/KanbanPage.tsx:272`). API endpoint implemented (`src/server/routes/kanbanRoutes.ts:13`) and route test validates non-empty columns/cards (`tests/server/project-kanban-sync-routes.test.ts:107`)."
     },
     {
       "id": 4,
       "description": "Story status changes from events are reflected in both Kanban and related project/workflow views without refresh.",
-      "verdict": "FAIL",
-      "evidence": "Kanban and Projects pages handle realtime `story` events (`src/client/features/delivery/KanbanPage.tsx:70`, `src/client/features/delivery/ProjectsPage.tsx:101`) but workflow state reducer ignores non-`workflow` events and has no `story` event branch in `src/client/features/workflows/liveState.ts:181`. This prevents story status event propagation into workflow-related view state without refresh."
+      "verdict": "PASS",
+      "evidence": "Kanban and project pages handle `story` websocket events and mutate in-memory view state (`src/client/features/delivery/KanbanPage.tsx:74`, `src/client/features/delivery/ProjectsPage.tsx:108`). Workflow reducer applies workflow updates from `story` events (`src/client/features/workflows/liveState.ts:94`, `src/client/features/workflows/liveState.ts:215`). Workflow client subscribes to `story` topic (`src/client/features/workflows/workflowRealtimeClient.ts:40`). Tests confirm workflow updates are applied from story events (`tests/client/workflow-live-state.test.ts:105`) and repository synchronization updates linked workflows (`tests/server/delivery-story-workflow-sync.test.ts:7`)."
     },
     {
       "id": 5,
       "description": "If consistency check fails, UI shows warning with module and last successful sync time.",
       "verdict": "PASS",
-      "evidence": "Consistency monitor generates warnings with `module` and `lastSuccessfulSyncAtUtc` in `src/server/services/consistencyMonitor.ts:28`; sync endpoint exposed at `src/server/routes/syncRoutes.ts:7`; UI warning blocks render module and last successful sync in `src/client/features/delivery/KanbanPage.tsx:239` and `src/client/features/delivery/ProjectsPage.tsx:272`; tests validate warning payload fields in `tests/server/project-kanban-sync-routes.test.ts:133` and warning rendering in `tests/client/delivery-pages.test.tsx` (test: renders kanban read-only indicator and consistency warning)."
+      "evidence": "Consistency warnings display module and last successful sync timestamp in both project and Kanban views (`src/client/features/delivery/ProjectsPage.tsx:282`, `src/client/features/delivery/KanbanPage.tsx:239`). Consistency monitor generates warning objects with module and `lastSuccessfulSyncAtUtc` (`src/server/services/consistencyMonitor.ts:35`). Sync route exposes status (`src/server/routes/syncRoutes.ts:7`). Test validates warning payload fields (`tests/server/project-kanban-sync-routes.test.ts:133`)."
     },
     {
       "id": 6,
       "description": "MVP defaults to read-only Kanban with explicit indicator; editable transitions remain disabled unless feature flag is enabled.",
       "verdict": "PASS",
-      "evidence": "Feature flag gate uses `KANBAN_EDITABLE` in `src/server/app.ts:34`; board default is read-only with reason in `src/server/dal/inMemoryDeliveryRepository.ts:190`; explicit read-only indicator shown in `src/client/features/delivery/KanbanPage.tsx:248`; status patch is rejected with 403 when editing disabled in `src/server/routes/storyRoutes.ts:30`; tested in `tests/server/project-kanban-sync-routes.test.ts:157`."
+      "evidence": "UI explicitly displays mode indicator and read-only reason (`src/client/features/delivery/KanbanPage.tsx:247`). Story status patch is blocked with 403 when editable flag is disabled (`src/server/routes/storyRoutes.ts:29`). Feature-flag wiring for editable mode is present (`src/server/app.ts:31`). Tests verify read-only board and disabled patch transitions (`tests/server/project-kanban-sync-routes.test.ts:107`, `tests/server/project-kanban-sync-routes.test.ts:157`, `tests/client/delivery-pages.test.tsx:231`)."
     }
   ],
-  "issues_found": [
-    {
-      "severity": "high",
-      "description": "Workflow-related view does not process story status change events, so cross-view synchronization from story events is incomplete.",
-      "recommendation": "Extend workflow live state handling to consume `story` module events and update related workflow-linked story state (or explicitly surface synchronized story status context in workflow view) without page refresh; add client tests validating this behavior."
-    },
-    {
-      "severity": "medium",
-      "description": "Project detail context sections are not actual links despite requirement for context links.",
-      "recommendation": "Render navigable links/actions for related stories/workflows/documents (e.g., route links or deep links) and add UI tests asserting link presence and valid targets."
-    }
-  ],
+  "issues_found": [],
   "test_results": {
-    "tests_run": 26,
-    "tests_passed": 26,
+    "tests_run": 12,
+    "tests_passed": 12,
     "tests_failed": 0,
     "details": [
       {
-        "test": "vitest run (all suites)",
+        "test": "tests/server/project-kanban-sync-routes.test.ts",
         "result": "pass",
-        "note": "7 files, 26 tests passed. Relevant suites include `tests/server/project-kanban-sync-routes.test.ts` and `tests/client/delivery-pages.test.tsx`."
+        "note": "5 tests passed"
+      },
+      {
+        "test": "tests/client/workflow-live-state.test.ts",
+        "result": "pass",
+        "note": "4 tests passed"
+      },
+      {
+        "test": "tests/server/delivery-story-workflow-sync.test.ts",
+        "result": "pass",
+        "note": "1 test passed"
+      },
+      {
+        "test": "tests/client/delivery-pages.test.tsx",
+        "result": "pass",
+        "note": "2 tests passed; emitted React Router future-flag warnings only"
       }
     ]
   },
   "code_quality_notes": [
-    "Canonical status vocabulary is reused consistently through shared types and Zod enums (`src/shared/statusModel.ts`, `src/server/routes/projectRoutes.ts`, `src/server/routes/storyRoutes.ts`).",
-    "Consistency monitor emits failure metrics per warning (`src/server/services/consistencyMonitor.ts:49`) using metrics registry (`src/server/observability/metrics.ts:15`).",
-    "Story-003 tests cover major route/UI scenarios, but no automated test currently validates workflow-view reaction to story events, leaving AC4 regression risk."
+    "Canonical status vocabulary is enforced in validation via `CANONICAL_STATUSES` for project/stories routes (`src/server/routes/projectRoutes.ts:7`, `src/server/routes/storyRoutes.ts:13`).",
+    "Consistency monitor emits cross-view consistency failure metrics for each warning (`src/server/services/consistencyMonitor.ts:53`).",
+    "Coverage is strongest at route/reducer level; no browser-level websocket integration test currently exercises simultaneous cross-page live updates end-to-end."
   ]
 }
