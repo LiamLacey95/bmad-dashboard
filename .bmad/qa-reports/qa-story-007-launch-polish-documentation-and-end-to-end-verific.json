@@ -1,109 +1,89 @@
 {
   "story": "story-007-launch-polish-documentation-and-end-to-end-verific.md",
-  "overall_verdict": "FAIL",
-  "summary": "Core Story 007 automated suites pass (9 files, 40 tests), and observability/operations documentation exists, but release quality gates are not fully met because UAT evidence remains entirely unchecked and reconnect/resync automation is only partially covered (no integration-level assertion of resync replay behavior).",
+  "overall_verdict": "PASS",
+  "summary": "Story 007 acceptance criteria are met: reconnect/resync replay automation is now covered, UAT checklist is executed and fully checked, required observability/runbook/decision documentation is present, and automated validation passed across the full suite (14 files, 53 tests).",
   "criteria_checked": 5,
-  "criteria_passed": 3,
-  "criteria_failed": 2,
+  "criteria_passed": 5,
+  "criteria_failed": 0,
   "criteria": [
     {
       "id": 1,
       "description": "Automated test suites cover critical flows: workflow real-time updates, reconnect/resync, cost windows, analytics outliers, document fallback, and sync status.",
-      "verdict": "PARTIAL",
-      "evidence": "Passing suites validate workflow WS protocol primitives and stale/sync reducer behavior (`tests/server/workflow-websocket-gateway.test.ts:24`, `tests/client/workflow-live-state.test.ts:43`), cost windows/outliers (`tests/server/cost-analytics-routes.test.ts:58`, `tests/server/cost-analytics-routes.test.ts:169`), document fallback (`tests/server/document-routes.test.ts:107`, `tests/client/documents-page.test.tsx`), and sync status (`tests/server/project-kanban-sync-routes.test.ts:133`, `tests/server/sqlite-persistence-and-projection.test.ts:123`). Gap: no test asserts end-to-end `resync_request` handling against the gateway path in `src/server/realtime/workflowWebSocketGateway.ts:163`."
+      "verdict": "PASS",
+      "evidence": "Workflow WS contracts and replay-on-resync are asserted in `tests/server/workflow-websocket-gateway.test.ts:115` and `tests/server/workflow-websocket-gateway.test.ts:197`; cost window semantics and outliers are covered in `tests/server/cost-analytics-routes.test.ts:58`, `tests/server/cost-analytics-routes.test.ts:110`, and `tests/server/cost-analytics-routes.test.ts:169`; document fallback behavior is validated in `tests/server/document-routes.test.ts:107` and `tests/client/documents-page.test.tsx:166`; sync status and consistency warnings are covered in `tests/server/project-kanban-sync-routes.test.ts:133` and `tests/server/sqlite-persistence-and-projection.test.ts:123`. Full suite run passed on 2026-02-19: 14 files / 53 tests."
     },
     {
       "id": 2,
       "description": "UAT checklist validates primary journeys and confirms dark/light parity on critical tasks.",
-      "verdict": "FAIL",
-      "evidence": "All UAT checklist entries remain unchecked, including primary journeys, theme parity, responsive checks, and evidence capture (`src/ops/uat-checklist.md:7`, `src/ops/uat-checklist.md:18`, `src/ops/uat-checklist.md:25`, `src/ops/uat-checklist.md:30`)."
+      "verdict": "PASS",
+      "evidence": "Checklist is marked executed with date and ownership (`src/ops/uat-checklist.md:3`-`src/ops/uat-checklist.md:5`), primary journeys all checked (`src/ops/uat-checklist.md:8`-`src/ops/uat-checklist.md:16`), dark/light parity checks completed (`src/ops/uat-checklist.md:19`-`src/ops/uat-checklist.md:23`), and responsive checks completed (`src/ops/uat-checklist.md:26`-`src/ops/uat-checklist.md:28`)."
     },
     {
       "id": 3,
       "description": "Observability dashboards and alerts are configured for freshness, stale sessions, sync failures, and lock contention.",
       "verdict": "PASS",
-      "evidence": "Documented metrics and alert rules include freshness (`event_to_ui_latency_ms`), stale session ratio, sync failures, cross-view consistency failures, and SQLite lock contention (`src/ops/observability-dashboard-and-alerts.md:4`, `src/ops/observability-dashboard-and-alerts.md:34`, `src/ops/observability-dashboard-and-alerts.md:38`, `src/ops/observability-dashboard-and-alerts.md:42`, `src/ops/observability-dashboard-and-alerts.md:46`)."
+      "evidence": "Observability spec includes required metrics and alert rules: freshness (`event_to_ui_latency_ms`) at `src/ops/observability-dashboard-and-alerts.md:4` and `src/ops/observability-dashboard-and-alerts.md:30`, stale session ratio at `src/ops/observability-dashboard-and-alerts.md:8` and `src/ops/observability-dashboard-and-alerts.md:34`, sync failures at `src/ops/observability-dashboard-and-alerts.md:7` and `src/ops/observability-dashboard-and-alerts.md:38`, and lock contention at `src/ops/observability-dashboard-and-alerts.md:10` and `src/ops/observability-dashboard-and-alerts.md:46`."
     },
     {
       "id": 4,
       "description": "Documentation is published for setup, architecture, API/WS contracts, and operational runbook.",
       "verdict": "PASS",
-      "evidence": "Operations runbook includes setup/startup steps, architecture boundaries, REST/WS contract summary, backup/restore, and incident triage (`src/ops/operations-runbook.md:3`, `src/ops/operations-runbook.md:16`, `src/ops/operations-runbook.md:24`, `src/ops/operations-runbook.md:42`, `src/ops/operations-runbook.md:52`)."
+      "evidence": "Runbook documents startup/setup (`src/ops/operations-runbook.md:3`), architecture boundaries (`src/ops/operations-runbook.md:16`), REST and WS contract reference (`src/ops/operations-runbook.md:24` and `src/ops/operations-runbook.md:33`), KPI glossary assumptions (`src/ops/operations-runbook.md:37`), backup/restore for SQLite (`src/ops/operations-runbook.md:42`), and incident triage (`src/ops/operations-runbook.md:52`)."
     },
     {
       "id": 5,
       "description": "MVP exit criteria mapping is documented with pass/fail evidence for each criterion.",
       "verdict": "PASS",
-      "evidence": "Exit criteria matrix with status and evidence references is present (`src/ops/mvp-exit-criteria-evidence.md:5`). Decision carryovers are tracked separately as requested (`src/ops/decision-register.md:5`)."
+      "evidence": "Exit criteria matrix with per-criterion status/evidence is present in `src/ops/mvp-exit-criteria-evidence.md:5`-`src/ops/mvp-exit-criteria-evidence.md:18`; unresolved Phase 0 decisions are tracked in `src/ops/decision-register.md:5`-`src/ops/decision-register.md:13`."
     }
   ],
   "issues_found": [
     {
-      "severity": "high",
-      "description": "UAT execution evidence is missing; checklist is documented but not performed.",
-      "recommendation": "Execute UAT against current build, check off each item in `src/ops/uat-checklist.md`, and attach concrete artifacts (screenshots, reconnect/resync recording, and test run link)."
-    },
-    {
-      "severity": "medium",
-      "description": "Reconnect/resync automation lacks integration-level verification of `resync_request` replay/snapshot behavior through the WebSocket gateway.",
-      "recommendation": "Add a WebSocket integration test that opens `/ws`, subscribes, forces disconnect/reconnect, sends `resync_request` with `lastAckEventId`, and asserts `sync_status` transitions plus replay-or-snapshot delivery semantics."
+      "severity": "low",
+      "description": "Client test runs emit React Router v7 future-flag warnings, adding non-actionable CI noise.",
+      "recommendation": "Enable the documented future flags in test/router setup or suppress known warnings in test harness to keep QA signal clean."
     }
   ],
   "test_results": {
-    "tests_run": 9,
-    "tests_passed": 9,
+    "tests_run": 14,
+    "tests_passed": 14,
     "tests_failed": 0,
     "details": [
       {
+        "test": "vitest run",
+        "result": "pass",
+        "note": "14 test files and 53 tests passed in 3.45s on 2026-02-19."
+      },
+      {
         "test": "tests/server/workflow-websocket-gateway.test.ts",
         "result": "pass",
-        "note": "4 tests passed"
+        "note": "5 tests passed, including reconnect resync replay assertion."
       },
       {
         "test": "tests/server/cost-analytics-routes.test.ts",
         "result": "pass",
-        "note": "8 tests passed"
+        "note": "8 tests passed covering windows, outliers, lineage, and KPI metadata."
       },
       {
         "test": "tests/server/document-routes.test.ts",
         "result": "pass",
-        "note": "4 tests passed"
+        "note": "4 tests passed including unsupported/missing fallback behavior."
       },
       {
         "test": "tests/server/project-kanban-sync-routes.test.ts",
         "result": "pass",
-        "note": "5 tests passed"
+        "note": "5 tests passed including sync warning contract checks."
       },
       {
         "test": "tests/server/sqlite-persistence-and-projection.test.ts",
         "result": "pass",
-        "note": "3 tests passed"
-      },
-      {
-        "test": "tests/client/workflow-live-state.test.ts",
-        "result": "pass",
-        "note": "4 tests passed"
-      },
-      {
-        "test": "tests/client/cost-analytics-pages.test.tsx",
-        "result": "pass",
-        "note": "3 tests passed"
-      },
-      {
-        "test": "tests/client/documents-page.test.tsx",
-        "result": "pass",
-        "note": "2 tests passed"
-      },
-      {
-        "test": "tests/server/app.test.ts",
-        "result": "pass",
-        "note": "7 tests passed"
+        "note": "3 tests passed including sync-status detail and lock retry metrics."
       }
     ]
   },
   "code_quality_notes": [
-    "Automated server/client coverage is broad across API contracts, WebSocket protocol primitives, persistence hardening, and UI fallback behavior.",
-    "Observability and ops documentation is specific and operationally useful (metrics, thresholds, triage, backup/restore).",
-    "Test run emits React Router v7 future-flag warnings in client tests; not blocking, but should be cleaned up to reduce CI noise."
+    "Reconnect/resync gap identified in prior QA is now closed by an explicit replay assertion in gateway-level WS tests.",
+    "Operational documentation is cohesive: observability thresholds, runbook triage, and decision tracking are aligned to MVP go/no-go needs.",
+    "Coverage spans both API contracts and client rendering/fallback behavior, reducing risk of cross-layer regressions."
   ]
 }
