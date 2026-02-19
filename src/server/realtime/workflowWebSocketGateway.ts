@@ -3,12 +3,19 @@ import { WebSocketServer, type WebSocket } from 'ws';
 import { SYNC_MODULE } from '../../shared/delivery.js';
 import {
   WORKFLOW_MODULE,
-  type ClientToServerMessage,
   type RealtimeModule,
   type ServerToClientMessage
 } from '../../shared/workflows.js';
 import type { WorkflowRealtimeHub } from './workflowRealtimeHub.js';
 import { metricsRegistry } from '../observability/metrics.js';
+import {
+  createBadMessageError,
+  createStaleState,
+  createSyncStatus,
+  createUnsupportedMessageTypeError,
+  parseEventLatencyMs,
+  safeParseMessage
+} from './workflowWebSocketProtocol.js';
 
 const HEARTBEAT_INTERVAL_MS = 15_000;
 const HEARTBEAT_TIMEOUT_MS = HEARTBEAT_INTERVAL_MS * 2;
@@ -20,14 +27,6 @@ interface Session {
   lastHeartbeatAt: number;
   lastAckEventId: string | null;
   lastSuccessfulUpdateAt: string | null;
-}
-
-function safeParseMessage(raw: string): ClientToServerMessage | null {
-  try {
-    return JSON.parse(raw) as ClientToServerMessage;
-  } catch {
-    return null;
-  }
 }
 
 function sendMessage(socket: WebSocket, payload: ServerToClientMessage): void {
@@ -42,13 +41,7 @@ function isValidTopic(topic: string): topic is RealtimeModule {
 }
 
 function sendSyncStatus(socket: WebSocket, module: RealtimeModule, status: 'ok' | 'syncing' | 'error'): void {
-  sendMessage(socket, {
-    type: 'sync_status',
-    module,
-    status,
-    lastSuccessfulSyncAt: status === 'ok' ? new Date().toISOString() : null,
-    error: null
-  });
+  sendMessage(socket, createSyncStatus(module, status));
 }
 
 function updateStaleSessionsRatio(sessions: Map<WebSocket, Session>): void {
@@ -85,14 +78,13 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
       session.staleTopics.delete(message.module);
       updateStaleSessionsRatio(sessions);
 
+      const eventLatencyMs = parseEventLatencyMs(message);
+      if (eventLatencyMs !== null) {
+        metricsRegistry.observeEventToUiLatency(eventLatencyMs);
+      }
+
       sendMessage(session.socket, message);
-      sendMessage(session.socket, {
-        type: 'stale_state',
-        module: message.module,
-        isStale: false,
-        lastSuccessfulUpdateAt: message.occurredAt,
-        reason: 'fresh_event_received'
-      });
+      sendMessage(session.socket, createStaleState(message.module, false, message.occurredAt, 'fresh_event_received'));
     });
   });
 
@@ -105,13 +97,7 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
 
       session.topics.forEach((topic) => {
         session.staleTopics.add(topic);
-        sendMessage(socket, {
-          type: 'stale_state',
-          module: topic,
-          isStale: true,
-          lastSuccessfulUpdateAt: session.lastSuccessfulUpdateAt,
-          reason: 'heartbeat_timeout'
-        });
+        sendMessage(socket, createStaleState(topic, true, session.lastSuccessfulUpdateAt, 'heartbeat_timeout'));
       });
       updateStaleSessionsRatio(sessions);
 
@@ -132,28 +118,12 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
     sessions.set(socket, session);
     updateStaleSessionsRatio(sessions);
 
-    sendMessage(socket, {
-      type: 'stale_state',
-      module: WORKFLOW_MODULE,
-      isStale: true,
-      lastSuccessfulUpdateAt: null,
-      reason: 'awaiting_subscription'
-    });
+    sendMessage(socket, createStaleState(WORKFLOW_MODULE, true, null, 'awaiting_subscription'));
 
     socket.on('message', async (rawMessage) => {
       const parsed = safeParseMessage(rawMessage.toString());
       if (!parsed) {
-        sendMessage(socket, {
-          type: 'error',
-          code: 'BAD_MESSAGE',
-          message: 'Message payload is not valid JSON',
-          recoverable: true,
-          requestId: null,
-          timestampUtc: new Date().toISOString(),
-          context: {
-            action: 'send_valid_json'
-          }
-        });
+        sendMessage(socket, createBadMessageError());
         return;
       }
 
@@ -191,6 +161,7 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
       }
 
       if (parsed.type === 'resync_request') {
+        metricsRegistry.incrementWebsocketReconnectAttempts();
         session.lastAckEventId = parsed.lastAckEventId;
 
         await Promise.all(
@@ -226,17 +197,7 @@ export function createWorkflowWebSocketGateway(server: Server, hub: WorkflowReal
         return;
       }
 
-      sendMessage(socket, {
-        type: 'error',
-        code: 'UNSUPPORTED_MESSAGE_TYPE',
-        message: `Unsupported message type ${(parsed as { type: string }).type}`,
-        recoverable: true,
-        requestId: null,
-        timestampUtc: new Date().toISOString(),
-        context: {
-          action: 'send_supported_type'
-        }
-      });
+      sendMessage(socket, createUnsupportedMessageTypeError((parsed as { type: string }).type));
     });
 
     socket.on('close', () => {

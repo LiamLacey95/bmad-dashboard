@@ -10,6 +10,8 @@ class MetricsRegistry {
   private consistencyFailures = new Map<string, number>();
   private syncFailures = new Map<string, number>();
   private sqliteWriteLockWaitMs: number[] = [];
+  private eventToUiLatencyMs: number[] = [];
+  private websocketReconnectAttemptsTotal = 0;
   private staleStateActiveSessionsRatio = 0;
 
   recordApiRequestDuration(metric: RequestMetrics): void {
@@ -30,6 +32,14 @@ class MetricsRegistry {
     this.sqliteWriteLockWaitMs.push(waitMs);
   }
 
+  observeEventToUiLatency(latencyMs: number): void {
+    this.eventToUiLatencyMs.push(latencyMs);
+  }
+
+  incrementWebsocketReconnectAttempts(count = 1): void {
+    this.websocketReconnectAttemptsTotal += count;
+  }
+
   setStaleStateActiveSessionsRatio(ratio: number): void {
     this.staleStateActiveSessionsRatio = ratio;
   }
@@ -46,6 +56,14 @@ class MetricsRegistry {
     return [...this.sqliteWriteLockWaitMs];
   }
 
+  getEventToUiLatencyMs(): number[] {
+    return [...this.eventToUiLatencyMs];
+  }
+
+  getWebsocketReconnectAttemptsTotal(): number {
+    return this.websocketReconnectAttemptsTotal;
+  }
+
   getStaleStateActiveSessionsRatio(): number {
     return this.staleStateActiveSessionsRatio;
   }
@@ -59,6 +77,8 @@ class MetricsRegistry {
     this.consistencyFailures = new Map();
     this.syncFailures = new Map();
     this.sqliteWriteLockWaitMs = [];
+    this.eventToUiLatencyMs = [];
+    this.websocketReconnectAttemptsTotal = 0;
     this.staleStateActiveSessionsRatio = 0;
   }
 }

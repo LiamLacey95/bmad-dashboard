@@ -1,4 +1,4 @@
-# BMAD Dashboard Foundation (Story 001)
+# BMAD Dashboard Foundation and Launch Readiness
 
 ## Stack
 - Frontend: React + TypeScript + Tailwind (`src/client`)
@@ -92,3 +92,10 @@ Frontend runs on `http://localhost:5173` and proxies `/api/*` to backend (`http:
 ```bash
 npm test
 ```
+
+## Story 007 launch readiness artifacts
+- UAT checklist: `src/ops/uat-checklist.md`
+- Observability dashboard and alerts: `src/ops/observability-dashboard-and-alerts.md`
+- Operational runbook (setup, boundaries, contracts, backup/restore, triage): `src/ops/operations-runbook.md`
+- Decision register: `src/ops/decision-register.md`
+- MVP exit criteria evidence: `src/ops/mvp-exit-criteria-evidence.md`
