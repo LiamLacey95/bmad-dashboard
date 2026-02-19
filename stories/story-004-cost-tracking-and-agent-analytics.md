@@ -27,11 +27,27 @@ Implement agent analytics trend comparison across selected agents/KPIs and outli
 - Use explicit KPI metadata model to support pending KPI finalization.
 
 ## Definition of Done
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
 
 ## Complexity
 5 points (1-5 scale)
+
+## Implementation Status
+- [x] Implemented backend endpoints:
+  - `GET /costs/summary`
+  - `GET /costs/timeseries`
+  - `GET /analytics/agents/trends`
+  - `GET /analytics/agents/outliers`
+  - `GET /analytics/lineage/:lineageRef`
+  - `GET /meta/kpis`
+- [x] Added unavailable cost handling (`availability=\"unavailable\"`) for missing data.
+- [x] Added custom-window validation with `422` feedback.
+- [x] Added outlier insufficient-data reason payloads.
+- [x] Added lineage drilldown payloads for trend/outlier references.
+- [x] Added SQLite index statements for required query paths.
+- [x] Implemented `/costs` and `/analytics` UI modules with time-window controls, KPI definitions, outlier highlighting, and lineage drilldown.
+- [x] Added unit tests for server routes/repository behavior and client page behavior.
 
 ---

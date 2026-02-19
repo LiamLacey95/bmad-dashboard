@@ -191,12 +191,14 @@ describe('API foundation (unit)', () => {
 
     const result = (res as unknown as {
       statusCode: number;
-      body: { error: { code: string; message: string; requestId: string } };
+      body: { error: { code: string; message: string; requestId: string; recoverable: boolean; timestampUtc: string } };
     });
 
     expect(result.statusCode).toBe(404);
     expect(result.body.error.code).toBe('NOT_FOUND');
     expect(result.body.error.message).toContain('Route not found');
     expect(result.body.error.requestId).toBe('req-123');
+    expect(result.body.error.recoverable).toBe(true);
+    expect(result.body.error.timestampUtc).toMatch(/Z$/);
   });
 });

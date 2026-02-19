@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { WsEventMessage } from '../../src/shared/workflows.js';
+import type { WsEventMessage, WsStoryEventMessage } from '../../src/shared/workflows.js';
 import {
   calculateReconnectDelayMs,
   initialWorkflowLiveState,
@@ -100,5 +100,79 @@ describe('workflow live reducer', () => {
       expect(delay).toBeGreaterThanOrEqual(400);
       expect(delay).toBeLessThanOrEqual(36_000);
     }
+  });
+
+  it('applies workflow updates from story status events', () => {
+    const seeded = workflowLiveReducer(initialWorkflowLiveState, {
+      type: 'SET_INITIAL_WORKFLOWS',
+      workflows: [
+        {
+          id: 'wf-1002',
+          name: 'Nightly Regression',
+          ownerId: 'bob',
+          status: 'blocked',
+          lastTransitionAt: '2026-02-19T20:00:00.000Z'
+        }
+      ]
+    });
+
+    const storyEvent: WsStoryEventMessage = {
+      type: 'event',
+      eventId: 'evt-2',
+      module: 'story',
+      entityType: 'story',
+      entityId: 'story-301',
+      eventType: 'story_status_changed',
+      occurredAt: '2026-02-19T20:05:00.000Z',
+      payload: {
+        story: {
+          id: 'story-301',
+          projectId: 'project-core',
+          title: 'Story',
+          ownerId: 'alice',
+          status: 'done',
+          kanbanColumn: 'done',
+          updatedAt: '2026-02-19T20:05:00.000Z'
+        },
+        project: {
+          id: 'project-core',
+          name: 'Core Delivery Controls',
+          ownerId: 'alice',
+          status: 'in_progress',
+          progressPct: 75,
+          dueAt: '2026-02-22T18:00:00.000Z',
+          riskFlag: false,
+          isOverdue: false,
+          updatedAt: '2026-02-19T20:05:00.000Z'
+        },
+        workflowUpdates: [
+          {
+            workflow: {
+              id: 'wf-1002',
+              name: 'Nightly Regression',
+              ownerId: 'bob',
+              status: 'done',
+              lastTransitionAt: '2026-02-19T20:05:00.000Z'
+            },
+            transition: {
+              id: 'wt-9',
+              workflowId: 'wf-1002',
+              fromStatus: 'blocked',
+              toStatus: 'done',
+              occurredAtUtc: '2026-02-19T20:05:00.000Z',
+              actorId: 'api-user',
+              reason: 'resolved'
+            }
+          }
+        ]
+      },
+      lineageRef: 'story-status:story-301:2026-02-19T20:05:00.000Z'
+    };
+
+    const updated = workflowLiveReducer(seeded, { type: 'WS_MESSAGE', message: storyEvent });
+    expect(updated.workflows[0].status).toBe('done');
+    expect(updated.transitionsByWorkflowId['wf-1002']).toHaveLength(1);
+    expect(updated.lastAckEventId).toBe('evt-2');
+    expect(updated.lastSuccessfulUpdateAt).toBe('2026-02-19T20:05:00.000Z');
   });
 });

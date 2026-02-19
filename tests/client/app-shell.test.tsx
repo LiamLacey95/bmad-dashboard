@@ -20,6 +20,50 @@ describe('App shell', () => {
       'fetch',
       vi.fn(async (input: RequestInfo | URL) => {
         const url = String(input);
+        if (url.includes('/api/v1/kanban/board')) {
+          return {
+            ok: true,
+            json: async () => ({
+              data: {
+                projectId: null,
+                readOnly: true,
+                editable: false,
+                editableModeReason: 'MVP read only',
+                generatedAt: '2026-02-19T20:00:00.000Z',
+                columns: [
+                  { id: 'queued', label: 'Queued', statuses: ['queued'], cards: [] },
+                  { id: 'in_progress', label: 'In Progress', statuses: ['in_progress'], cards: [] }
+                ]
+              }
+            })
+          } as Response;
+        }
+
+        if (url.includes('/api/v1/sync/status')) {
+          return {
+            ok: true,
+            json: async () => ({
+              data: {
+                modules: [],
+                warnings: [],
+                checkedAtUtc: '2026-02-19T20:00:00.000Z'
+              }
+            })
+          } as Response;
+        }
+
+        if (url.includes('/api/v1/projects')) {
+          return {
+            ok: true,
+            json: async () => ({
+              data: {
+                items: [],
+                total: 0
+              }
+            })
+          } as Response;
+        }
+
         if (url.includes('/transitions')) {
           return {
             ok: true,
@@ -97,5 +141,8 @@ describe('App shell', () => {
 
     expect(screen.getByText(/Stale modules:/i)).toHaveTextContent('kanban');
     expect(screen.getByText(/Syncing modules:/i)).toHaveTextContent('costs, analytics');
+    expect(screen.getByText(/Recovery actions/i)).toBeInTheDocument();
+    expect(screen.getByText(/Module: kanban/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Action:/i).length).toBeGreaterThan(0);
   });
 });

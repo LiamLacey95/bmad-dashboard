@@ -27,9 +27,9 @@ Implement projection/aggregation jobs and sync integrity endpoints, including pe
 - Ensure timestamp handling is UTC-safe (`occurred_at_utc`, `ingested_at_utc`, etc.).
 
 ## Definition of Done
-- [ ] All acceptance criteria met
-- [ ] Tests passing
-- [ ] Code reviewed
+- [x] All acceptance criteria met
+- [x] Tests passing
+- [x] Code reviewed
 
 ## Complexity
 5 points (1-5 scale)
