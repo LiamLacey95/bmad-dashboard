@@ -1,4 +1,6 @@
 import type {
+  DocumentContentPayload,
+  DocumentDetail,
   KanbanBoard,
   ProjectContext,
   ProjectDetail,
@@ -58,5 +60,32 @@ export async function fetchKanbanBoard(projectId?: string): Promise<KanbanBoard>
 export async function fetchSyncStatus(): Promise<SyncStatusPayload> {
   const response = await fetch('/api/v1/sync/status');
   const payload = await parseJson<ResponseEnvelope<SyncStatusPayload>>(response);
+  return payload.data;
+}
+
+export async function fetchDocuments(query: { projectId?: string; storyId?: string } = {}): Promise<DocumentDetail[]> {
+  const params = new URLSearchParams();
+  if (query.projectId) {
+    params.set('projectId', query.projectId);
+  }
+  if (query.storyId) {
+    params.set('storyId', query.storyId);
+  }
+
+  const qs = params.toString();
+  const response = await fetch(`/api/v1/documents${qs ? `?${qs}` : ''}`);
+  const payload = await parseJson<ResponseEnvelope<{ items: DocumentDetail[]; total: number }>>(response);
+  return payload.data.items;
+}
+
+export async function fetchDocumentDetail(documentId: string): Promise<DocumentDetail> {
+  const response = await fetch(`/api/v1/documents/${encodeURIComponent(documentId)}`);
+  const payload = await parseJson<ResponseEnvelope<DocumentDetail>>(response);
+  return payload.data;
+}
+
+export async function fetchDocumentContent(documentId: string): Promise<DocumentContentPayload> {
+  const response = await fetch(`/api/v1/documents/${encodeURIComponent(documentId)}/content`);
+  const payload = await parseJson<ResponseEnvelope<DocumentContentPayload>>(response);
   return payload.data;
 }

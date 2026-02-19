@@ -50,6 +50,18 @@ Frontend runs on `http://localhost:5173` and proxies `/api/*` to backend (`http:
   ```bash
   curl "http://localhost:3001/api/v1/kanban/board"
   ```
+- Document list:
+  ```bash
+  curl "http://localhost:3001/api/v1/documents?projectId=project-core"
+  ```
+- Document metadata:
+  ```bash
+  curl "http://localhost:3001/api/v1/documents/doc-101"
+  ```
+- Document content payload:
+  ```bash
+  curl "http://localhost:3001/api/v1/documents/doc-101/content"
+  ```
 - Sync and consistency status:
   ```bash
   curl "http://localhost:3001/api/v1/sync/status"
@@ -64,6 +76,10 @@ Frontend runs on `http://localhost:5173` and proxies `/api/*` to backend (`http:
 ## Kanban mode flag
 - MVP defaults to read-only Kanban.
 - Set `KANBAN_EDITABLE=true` to enable the `PATCH /api/v1/stories/:id/status` transition route.
+
+## Document MIME allowlist
+- Inline rendering defaults to: `text/markdown`, `application/pdf`, `application/json`.
+- Override with: `DOCUMENT_INLINE_MIME_ALLOWLIST="text/markdown,application/pdf,application/json"`.
 
 ## Test
 ```bash

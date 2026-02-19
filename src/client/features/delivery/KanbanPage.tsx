@@ -139,15 +139,15 @@ function warningForKanban(state: KanbanState): SyncStatusPayload['warnings'] {
 
 function statusClass(status: string): string {
   if (status === 'blocked') {
-    return 'bg-amber-100 text-amber-800';
+    return 'status-pill status-pill--blocked';
   }
   if (status === 'failed') {
-    return 'bg-rose-100 text-rose-800';
+    return 'status-pill status-pill--failed';
   }
   if (status === 'done' || status === 'canceled') {
-    return 'bg-emerald-100 text-emerald-800';
+    return 'status-pill status-pill--done';
   }
-  return 'bg-slate-100 text-slate-800';
+  return 'status-pill status-pill--neutral';
 }
 
 export function KanbanPage(): JSX.Element {
@@ -232,7 +232,7 @@ export function KanbanPage(): JSX.Element {
       </header>
 
       {warnings.length > 0 && (
-        <div className="space-y-2 rounded-md border border-amber-500/60 bg-amber-50 p-3 text-sm text-amber-950">
+        <div className="status-panel-warning space-y-2 rounded-md p-3 text-sm">
           <p className="font-medium">Consistency warning</p>
           {warnings.map((warning) => (
             <p key={`${warning.module}:${warning.message}`}>
@@ -250,7 +250,7 @@ export function KanbanPage(): JSX.Element {
       )}
 
       {state.loading && <p className="text-sm text-[var(--muted-fg)]">Loading board...</p>}
-      {state.error && <p className="text-sm text-rose-700">{state.error}</p>}
+      {state.error && <p className="status-text-error text-sm">{state.error}</p>}
 
       {state.board && (
         <div className="grid gap-3 lg:grid-cols-5">
@@ -263,12 +263,12 @@ export function KanbanPage(): JSX.Element {
 
               <div className="space-y-2">
                 {column.cards.map((card) => (
-                  <article key={card.id} className="rounded border border-[var(--border)] bg-white p-2 text-xs shadow-sm">
-                    <p className="font-medium text-slate-900">{card.title}</p>
-                    <p className="text-slate-600">
+                  <article key={card.id} className="rounded border border-[var(--border)] bg-[var(--panel)] p-2 text-xs shadow-sm">
+                    <p className="font-medium text-[var(--fg)]">{card.title}</p>
+                    <p className="text-[var(--muted-fg)]">
                       {card.storyId} | {card.projectName}
                     </p>
-                    <p className="text-slate-600">Owner: {card.ownerId}</p>
+                    <p className="text-[var(--muted-fg)]">Owner: {card.ownerId}</p>
                     <span className={`inline-block rounded px-2 py-0.5 ${statusClass(card.status)}`}>{card.status}</span>
                   </article>
                 ))}

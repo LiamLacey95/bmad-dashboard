@@ -215,7 +215,7 @@ export function AnalyticsPage(): JSX.Element {
           <label className="flex flex-col gap-1">
             Outlier KPI
             <select
-              className="rounded border border-[var(--border)] bg-white px-2 py-1"
+              className="rounded border border-[var(--border)] bg-[var(--panel)] px-2 py-1"
               value={outlierKpi}
               onChange={(event) => setOutlierKpi(event.target.value)}
             >
@@ -234,7 +234,7 @@ export function AnalyticsPage(): JSX.Element {
             Start
             <input
               type="datetime-local"
-              className="rounded border border-[var(--border)] bg-white px-2 py-1"
+              className="rounded border border-[var(--border)] bg-[var(--panel)] px-2 py-1"
               value={startInput}
               onChange={(event) => setStartInput(event.target.value)}
             />
@@ -244,17 +244,17 @@ export function AnalyticsPage(): JSX.Element {
             End
             <input
               type="datetime-local"
-              className="rounded border border-[var(--border)] bg-white px-2 py-1"
+              className="rounded border border-[var(--border)] bg-[var(--panel)] px-2 py-1"
               value={endInput}
               onChange={(event) => setEndInput(event.target.value)}
             />
           </label>
         </div>
 
-        {validationError && <p className="text-rose-700">{validationError}</p>}
+        {validationError && <p className="status-text-error">{validationError}</p>}
       </section>
 
-      {error && <p className="text-sm text-rose-700">{error}</p>}
+      {error && <p className="status-text-error text-sm">{error}</p>}
       {loading && <p className="text-sm text-[var(--muted-fg)]">Loading analytics...</p>}
 
       {trends && (
@@ -297,17 +297,17 @@ export function AnalyticsPage(): JSX.Element {
           {outliers.items.map((item) => (
             <article
               key={`${item.agentId}:${item.windowEndUtc}:${item.kpiKey}`}
-              className="rounded border border-rose-300 bg-rose-50 p-2 text-sm"
+              className="status-panel-error rounded p-2 text-sm"
             >
-              <p className="font-medium text-rose-900">
+              <p className="font-medium">
                 {item.agentName} | {item.kpiLabel} | score {item.score}
               </p>
-              <p className="text-rose-800">
+              <p>
                 {item.windowEndUtc}: {item.value} {item.unit} ({item.method})
               </p>
               <button
                 type="button"
-                className="mt-1 rounded border border-rose-400 bg-white px-2 py-1 text-xs"
+                className="mt-1 rounded border border-[var(--surface-error-border)] bg-[var(--panel)] px-2 py-1 text-xs"
                 onClick={() => {
                   void loadLineage(item.lineageRef);
                 }}
@@ -318,7 +318,7 @@ export function AnalyticsPage(): JSX.Element {
           ))}
 
           {outliers.unavailable.length > 0 && (
-            <div className="rounded border border-amber-400 bg-amber-50 p-2 text-sm text-amber-900">
+            <div className="status-panel-warning rounded p-2 text-sm">
               <p className="font-medium">Unavailable calculations</p>
               {outliers.unavailable.map((item) => (
                 <p key={`${item.agentId}:${item.kpiKey}`}>

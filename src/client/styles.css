@@ -11,6 +11,20 @@
   --muted-fg: #4c5d74;
   --accent: #006d77;
   --accent-fg: #f4fffd;
+  --status-neutral-bg: #dde6f5;
+  --status-neutral-fg: #1f2d42;
+  --status-blocked-bg: #ffefcc;
+  --status-blocked-fg: #5a3b00;
+  --status-failed-bg: #ffd9dd;
+  --status-failed-fg: #651225;
+  --status-done-bg: #d6f8e6;
+  --status-done-fg: #0a5131;
+  --surface-warning: #fff3cf;
+  --surface-warning-border: #d79a11;
+  --surface-warning-fg: #5f3f00;
+  --surface-error: #ffe3e7;
+  --surface-error-border: #d23857;
+  --surface-error-fg: #6d1529;
 }
 
 :root[data-theme='dark'] {
@@ -22,6 +36,20 @@
   --muted-fg: #b7c5dd;
   --accent: #0f766e;
   --accent-fg: #ecfdf5;
+  --status-neutral-bg: #2f3f5d;
+  --status-neutral-fg: #e5ecff;
+  --status-blocked-bg: #5d4515;
+  --status-blocked-fg: #ffe6b0;
+  --status-failed-bg: #5d2230;
+  --status-failed-fg: #ffd3da;
+  --status-done-bg: #184b37;
+  --status-done-fg: #cbffe8;
+  --surface-warning: #5c4713;
+  --surface-warning-border: #dca52a;
+  --surface-warning-fg: #ffe8b2;
+  --surface-error: #5a1f2d;
+  --surface-error-border: #da4f6f;
+  --surface-error-fg: #ffd1dc;
 }
 
 html,
@@ -35,4 +63,51 @@ body {
   font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, sans-serif;
   background: radial-gradient(circle at top left, rgba(0, 109, 119, 0.12), transparent 40%), var(--bg);
   color: var(--fg);
+}
+
+.status-pill {
+  border-radius: 0.25rem;
+  padding: 0.2rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.status-pill--neutral {
+  background: var(--status-neutral-bg);
+  color: var(--status-neutral-fg);
+}
+
+.status-pill--blocked {
+  background: var(--status-blocked-bg);
+  color: var(--status-blocked-fg);
+}
+
+.status-pill--failed {
+  background: var(--status-failed-bg);
+  color: var(--status-failed-fg);
+}
+
+.status-pill--done {
+  background: var(--status-done-bg);
+  color: var(--status-done-fg);
+}
+
+.status-panel-warning {
+  border: 1px solid var(--surface-warning-border);
+  background: var(--surface-warning);
+  color: var(--surface-warning-fg);
+}
+
+.status-panel-error {
+  border: 1px solid var(--surface-error-border);
+  background: var(--surface-error);
+  color: var(--surface-error-fg);
+}
+
+.status-text-warning {
+  color: var(--surface-warning-fg);
+}
+
+.status-text-error {
+  color: var(--surface-error-fg);
 }

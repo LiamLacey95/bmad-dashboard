@@ -167,7 +167,7 @@ export function CostsPage(): JSX.Element {
           <label className="flex flex-col gap-1">
             Window
             <select
-              className="rounded border border-[var(--border)] bg-white px-2 py-1"
+              className="rounded border border-[var(--border)] bg-[var(--panel)] px-2 py-1"
               value={windowSelection}
               onChange={(event) => setWindowSelection(event.target.value as WindowSelection)}
             >
@@ -181,7 +181,7 @@ export function CostsPage(): JSX.Element {
           <label className="flex flex-col gap-1">
             Project
             <select
-              className="rounded border border-[var(--border)] bg-white px-2 py-1"
+              className="rounded border border-[var(--border)] bg-[var(--panel)] px-2 py-1"
               value={projectId}
               onChange={(event) => setProjectId(event.target.value)}
             >
@@ -200,7 +200,7 @@ export function CostsPage(): JSX.Element {
                 Start
                 <input
                   type="datetime-local"
-                  className="rounded border border-[var(--border)] bg-white px-2 py-1"
+                  className="rounded border border-[var(--border)] bg-[var(--panel)] px-2 py-1"
                   value={customStartInput}
                   onChange={(event) => setCustomStartInput(event.target.value)}
                 />
@@ -209,7 +209,7 @@ export function CostsPage(): JSX.Element {
                 End
                 <input
                   type="datetime-local"
-                  className="rounded border border-[var(--border)] bg-white px-2 py-1"
+                  className="rounded border border-[var(--border)] bg-[var(--panel)] px-2 py-1"
                   value={customEndInput}
                   onChange={(event) => setCustomEndInput(event.target.value)}
                 />
@@ -227,11 +227,11 @@ export function CostsPage(): JSX.Element {
         <p className="mt-2 text-xs text-[var(--muted-fg)]">
           Active window: {appliedWindow.start} to {appliedWindow.end}
         </p>
-        {validationError && <p className="mt-2 text-sm text-rose-700">{validationError}</p>}
+        {validationError && <p className="status-text-error mt-2 text-sm">{validationError}</p>}
       </section>
 
       {loading && <p className="text-sm text-[var(--muted-fg)]">Loading cost data...</p>}
-      {error && <p className="text-sm text-rose-700">{error}</p>}
+      {error && <p className="status-text-error text-sm">{error}</p>}
 
       {summary && (
         <section className="space-y-3 rounded-lg border border-[var(--border)] p-3">
@@ -239,24 +239,26 @@ export function CostsPage(): JSX.Element {
           <div className="rounded border border-[var(--border)] bg-[var(--muted)] px-3 py-2">
             Total spend: <strong>{statusText(summary.aggregate.totalCost, summary.aggregate.availability)}</strong>
           </div>
-          <table className="min-w-full border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-[var(--border)] text-left">
-                <th className="px-2 py-1">Project</th>
-                <th className="px-2 py-1">Cost</th>
-                <th className="px-2 py-1">Availability</th>
-              </tr>
-            </thead>
-            <tbody>
-              {summary.projects.map((project) => (
-                <tr key={project.projectId} className="border-b border-[var(--border)]">
-                  <td className="px-2 py-1">{project.projectName}</td>
-                  <td className="px-2 py-1">{statusText(project.totalCost, project.availability)}</td>
-                  <td className="px-2 py-1">{project.availability}</td>
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm">
+              <thead>
+                <tr className="border-b border-[var(--border)] text-left">
+                  <th className="px-2 py-1">Project</th>
+                  <th className="px-2 py-1">Cost</th>
+                  <th className="px-2 py-1">Availability</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {summary.projects.map((project) => (
+                  <tr key={project.projectId} className="border-b border-[var(--border)]">
+                    <td className="px-2 py-1">{project.projectName}</td>
+                    <td className="px-2 py-1">{statusText(project.totalCost, project.availability)}</td>
+                    <td className="px-2 py-1">{project.availability}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </section>
       )}
 
@@ -267,7 +269,7 @@ export function CostsPage(): JSX.Element {
             {aggregateSeries.points.map((point) => (
               <article key={point.bucketStart} className="rounded border border-[var(--border)] bg-[var(--muted)] p-2 text-xs">
                 <p>{point.bucketStart}</p>
-                <p className={point.availability === 'unavailable' ? 'text-amber-700' : ''}>
+                <p className={point.availability === 'unavailable' ? 'status-text-warning' : ''}>
                   {point.availability === 'unavailable' ? 'Unavailable' : `$${point.totalCost?.toFixed(2) ?? '0.00'}`}
                 </p>
               </article>

@@ -1,4 +1,6 @@
 import type {
+  DocumentContentPayload,
+  DocumentDetail,
   DocumentReference,
   KanbanBoard,
   KanbanCard,
@@ -20,6 +22,12 @@ type WorkflowLinkRow = {
   storyId: string | null;
   name: string;
   ownerId: string;
+};
+
+type DocumentRow = DocumentDetail & {
+  isAvailable: boolean;
+  content: string | null;
+  contentBase64: string | null;
 };
 
 function isOverdue(dueAt: string): boolean {
@@ -82,7 +90,7 @@ function toCard(story: StorySummary, project: ProjectSummary): KanbanCard {
 export class InMemoryDeliveryRepository implements DeliveryRepository {
   private readonly projects = new Map<string, ProjectRow>();
   private readonly stories = new Map<string, StorySummary>();
-  private readonly documents = new Map<string, DocumentReference>();
+  private readonly documents = new Map<string, DocumentRow>();
   private readonly workflowLinks = new Map<string, WorkflowLinkRow>();
   private readonly syncStatus = new Map<SyncModuleStatus['module'], SyncModuleStatus>();
 
@@ -160,13 +168,100 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
         })
     );
 
-    const documents = [...this.documents.values()].filter((document) => document.projectId === projectId);
+    const documents = [...this.documents.values()]
+      .filter((document) => document.projectId === projectId)
+      .map((document) => this.toDocumentReference(document));
 
     return {
       project,
       stories,
       workflows: workflows.filter((workflow): workflow is NonNullable<typeof workflow> => Boolean(workflow)),
       documents
+    };
+  }
+
+  async getDocuments(query: { projectId?: string; storyId?: string }): Promise<{ items: DocumentDetail[]; total: number }> {
+    const items = [...this.documents.values()]
+      .filter((document) => (query.projectId ? document.projectId === query.projectId : true))
+      .filter((document) => (query.storyId ? document.storyId === query.storyId : true))
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+      .map((document) => this.toDocumentDetail(document));
+
+    return {
+      items,
+      total: items.length
+    };
+  }
+
+  async getDocumentById(id: string): Promise<DocumentDetail | null> {
+    const document = this.documents.get(id);
+    if (!document) {
+      return null;
+    }
+
+    return this.toDocumentDetail(document);
+  }
+
+  async getDocumentContentById(id: string, inlineMimeAllowlist: string[]): Promise<DocumentContentPayload | null> {
+    const document = this.documents.get(id);
+    if (!document) {
+      return null;
+    }
+
+    const detail = this.toDocumentDetail(document);
+    if (!inlineMimeAllowlist.includes(document.mimeType)) {
+      return {
+        document: detail,
+        renderMode: 'unsupported',
+        safeToRenderInline: false,
+        content: null,
+        contentBase64: null,
+        guidance:
+          'This file type is not allowed for inline preview. Download the artifact or update the document MIME allowlist.'
+      };
+    }
+
+    if (!document.isAvailable) {
+      return {
+        document: detail,
+        renderMode: 'missing',
+        safeToRenderInline: false,
+        content: null,
+        contentBase64: null,
+        guidance: 'The document metadata exists but content is unavailable. Re-sync the source artifact and retry.'
+      };
+    }
+
+    if (document.mimeType === 'text/markdown') {
+      return {
+        document: detail,
+        renderMode: 'markdown',
+        safeToRenderInline: true,
+        content: document.content ?? '',
+        contentBase64: null,
+        guidance: 'Inline markdown preview rendered as plain text for safe display.'
+      };
+    }
+
+    if (document.mimeType === 'application/json') {
+      const content = document.content ?? '{}';
+      return {
+        document: detail,
+        renderMode: 'json',
+        safeToRenderInline: true,
+        content,
+        contentBase64: null,
+        guidance: 'Inline JSON preview is validated and rendered as formatted text.'
+      };
+    }
+
+    return {
+      document: detail,
+      renderMode: 'pdf',
+      safeToRenderInline: true,
+      content: null,
+      contentBase64: document.contentBase64 ?? null,
+      guidance: 'PDF preview is sandboxed and isolated from inline script execution.'
     };
   }
 
@@ -319,6 +414,25 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
     };
   }
 
+  private toDocumentReference(document: DocumentRow): DocumentReference {
+    return {
+      id: document.id,
+      projectId: document.projectId,
+      storyId: document.storyId,
+      title: document.title,
+      mimeType: document.mimeType
+    };
+  }
+
+  private toDocumentDetail(document: DocumentRow): DocumentDetail {
+    return {
+      ...this.toDocumentReference(document),
+      storagePath: document.storagePath,
+      checksum: document.checksum,
+      createdAt: document.createdAt
+    };
+  }
+
   private seed(): void {
     const now = '2026-02-19T21:00:00.000Z';
 
@@ -414,27 +528,81 @@ export class InMemoryDeliveryRepository implements DeliveryRepository {
       this.stories.set(story.id, story);
     });
 
-    const documents: DocumentReference[] = [
+    const documents: DocumentRow[] = [
       {
         id: 'doc-100',
         projectId: 'project-core',
         storyId: 'story-301',
         title: 'Reliability test plan',
-        mimeType: 'application/pdf'
+        mimeType: 'application/pdf',
+        storagePath: '/artifacts/project-core/reliability-test-plan.pdf',
+        checksum: 'sha256:8d5f1f2e4e8b0a1a',
+        createdAt: '2026-02-18T18:10:00.000Z',
+        isAvailable: true,
+        content: null,
+        contentBase64:
+          'JVBERi0xLjQKJcTl8uXrPgoxIDAgb2JqPDwvVHlwZS9DYXRhbG9nL1BhZ2VzIDIgMCBSPj5lbmRvYmoKMiAwIG9iajw8L1R5cGUvUGFnZXMvQ291bnQgMS9LaWRzWzMgMCBSXT4+ZW5kb2JqCjMgMCBvYmo8PC9UeXBlL1BhZ2UvUGFyZW50IDIgMCBSL01lZGlhQm94WzAgMCA1OTUgODQyXS9Db250ZW50cyA0IDAgUi9SZXNvdXJjZXM8PC9Gb250PDwvRjEgNSAwIFI+Pj4+PgplbmRvYmoKNCAwIG9iajw8L0xlbmd0aCA2MT4+c3RyZWFtCkJUCi9GMSAxMiBUZgooUmVsaWFiaWxpdHkgdGVzdCBwbGFuIHByZXZpZXcpIFRqCjUwIDc4MCBUZAooU2FuZGJveGVkIHBkZiBwcmV2aWV3KSBUagpFVAplbmRzdHJlYW0KZW5kb2JqCjUgMCBvYmo8PC9UeXBlL0ZvbnQvU3VidHlwZS9UeXBlMS9CYXNlRm9udC9IZWx2ZXRpY2E+PmVuZG9iagp4cmVmCjAgNgowMDAwMDAwMDAwIDY1NTM1IGYKMDAwMDAwMDAxMCAwMDAwMCBuCjAwMDAwMDAwNjAgMDAwMDAgbgowMDAwMDAwMTE3IDAwMDAwIG4KMDAwMDAwMDI0NCAwMDAwMCBuCjAwMDAwMDAzNTYgMDAwMDAgbgp0cmFpbGVyPDwvU2l6ZSA2L1Jvb3QgMSAwIFI+PgpzdGFydHhyZWYKNDUyCiUlRU9G'
       },
       {
         id: 'doc-101',
         projectId: 'project-core',
         storyId: null,
         title: 'Incident runbook',
-        mimeType: 'text/markdown'
+        mimeType: 'text/markdown',
+        storagePath: '/artifacts/project-core/incident-runbook.md',
+        checksum: 'sha256:c4a5f6a70a24c221',
+        createdAt: '2026-02-18T16:20:00.000Z',
+        isAvailable: true,
+        content:
+          '# Incident Runbook\n\n- Verify stale-state reason and impacted modules.\n- Trigger resync after heartbeat recovery.\n- Confirm workflow/story state convergence.\n',
+        contentBase64: null
       },
       {
         id: 'doc-200',
         projectId: 'project-billing',
         storyId: 'story-401',
         title: 'Billing schema notes',
-        mimeType: 'application/json'
+        mimeType: 'application/json',
+        storagePath: '/artifacts/project-billing/billing-schema-notes.json',
+        checksum: 'sha256:b2dd78fa2d4714ad',
+        createdAt: '2026-02-17T12:00:00.000Z',
+        isAvailable: true,
+        content: JSON.stringify(
+          {
+            migrationId: 'billing-2026-02-17',
+            owner: 'carol',
+            checks: ['column parity', 'nullability constraints', 'roll-forward only']
+          },
+          null,
+          2
+        ),
+        contentBase64: null
+      },
+      {
+        id: 'doc-300',
+        projectId: 'project-ui',
+        storyId: 'story-502',
+        title: 'Wireframe export',
+        mimeType: 'image/png',
+        storagePath: '/artifacts/project-ui/wireframe-export.png',
+        checksum: 'sha256:fd8a30237994f613',
+        createdAt: '2026-02-19T08:00:00.000Z',
+        isAvailable: true,
+        content: null,
+        contentBase64: null
+      },
+      {
+        id: 'doc-301',
+        projectId: 'project-ui',
+        storyId: null,
+        title: 'Theme parity checklist',
+        mimeType: 'text/markdown',
+        storagePath: '/artifacts/project-ui/theme-parity-checklist.md',
+        checksum: 'sha256:73395d99a2fa7741',
+        createdAt: '2026-02-19T09:00:00.000Z',
+        isAvailable: false,
+        content: null,
+        contentBase64: null
       }
     ];
 

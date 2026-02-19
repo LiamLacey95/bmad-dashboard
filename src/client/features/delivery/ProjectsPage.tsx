@@ -164,15 +164,15 @@ function reducer(state: ProjectsState, action: ProjectsAction): ProjectsState {
 
 function statusPillClass(status: ProjectSummary['status']): string {
   if (status === 'blocked') {
-    return 'bg-amber-200 text-amber-900';
+    return 'status-pill status-pill--blocked';
   }
   if (status === 'failed') {
-    return 'bg-rose-200 text-rose-900';
+    return 'status-pill status-pill--failed';
   }
   if (status === 'done') {
-    return 'bg-emerald-200 text-emerald-900';
+    return 'status-pill status-pill--done';
   }
-  return 'bg-slate-200 text-slate-900';
+  return 'status-pill status-pill--neutral';
 }
 
 export function ProjectsPage(): JSX.Element {
@@ -275,7 +275,7 @@ export function ProjectsPage(): JSX.Element {
       </header>
 
       {warnings.length > 0 && (
-        <div className="space-y-2 rounded-md border border-amber-500/60 bg-amber-50 p-3 text-sm text-amber-950">
+        <div className="status-panel-warning space-y-2 rounded-md p-3 text-sm">
           <p className="font-medium">Consistency warning</p>
           {warnings.map((warning) => (
             <p key={`${warning.module}:${warning.message}`}>
@@ -287,8 +287,9 @@ export function ProjectsPage(): JSX.Element {
       )}
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
-        <section className="overflow-hidden rounded-lg border border-[var(--border)]">
-          <table className="min-w-full border-collapse text-sm">
+        <section className="rounded-lg border border-[var(--border)]">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm">
             <thead className="bg-[var(--muted)] text-left">
               <tr>
                 <th className="px-3 py-2">Project</th>
@@ -304,7 +305,7 @@ export function ProjectsPage(): JSX.Element {
                   key={project.id}
                   className={`cursor-pointer border-t border-[var(--border)] hover:bg-[var(--muted)] ${
                     state.selectedProjectId === project.id ? 'bg-[var(--muted)]' : ''
-                  } ${project.isOverdue ? 'bg-rose-50/70' : ''}`}
+                  } ${project.isOverdue ? 'status-panel-error' : ''}`}
                   onClick={() => {
                     dispatch({ type: 'SELECT_PROJECT', projectId: project.id });
                     void loadProjectContext(project.id);
@@ -319,7 +320,7 @@ export function ProjectsPage(): JSX.Element {
                     <span className={`rounded px-2 py-1 text-xs font-medium ${statusPillClass(project.status)}`}>
                       {project.status}
                     </span>
-                    {project.riskFlag && <div className="mt-1 text-xs font-medium text-amber-700">Risk flagged</div>}
+                    {project.riskFlag && <div className="status-text-warning mt-1 text-xs font-medium">Risk flagged</div>}
                   </td>
                   <td className="px-3 py-2">
                     <div className="h-2 rounded bg-[var(--muted)]">
@@ -329,7 +330,7 @@ export function ProjectsPage(): JSX.Element {
                   </td>
                   <td className="px-3 py-2">
                     <div>{new Date(project.dueAt).toLocaleDateString()}</div>
-                    {project.isOverdue && <div className="text-xs font-medium text-rose-700">Overdue</div>}
+                    {project.isOverdue && <div className="status-text-error text-xs font-medium">Overdue</div>}
                   </td>
                 </tr>
               ))}
@@ -341,13 +342,14 @@ export function ProjectsPage(): JSX.Element {
                 </tr>
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </section>
 
         <section className="space-y-3 rounded-lg border border-[var(--border)] p-3">
           <h2 className="text-lg font-medium">Project Detail</h2>
           {state.contextLoading && <p className="text-sm text-[var(--muted-fg)]">Loading project context...</p>}
-          {state.error && <p className="text-sm text-rose-700">{state.error}</p>}
+          {state.error && <p className="status-text-error text-sm">{state.error}</p>}
 
           {state.selectedDetail && state.selectedContext && !state.contextLoading && (
             <div className="space-y-3 text-sm">

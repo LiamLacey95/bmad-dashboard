@@ -13,6 +13,7 @@ import { requestIdMiddleware } from './middleware/requestId.js';
 import { InMemoryWorkflowRealtimeHub } from './realtime/workflowRealtimeHub.js';
 import { createAnalyticsRouter } from './routes/analyticsRoutes.js';
 import { createCostRouter } from './routes/costRoutes.js';
+import { createDocumentRouter } from './routes/documentRoutes.js';
 import { createHealthRouter } from './routes/healthRoutes.js';
 import { createKanbanRouter } from './routes/kanbanRoutes.js';
 import { createMetaRouter } from './routes/metaRoutes.js';
@@ -55,6 +56,7 @@ export function createApp(dependencies: CreateAppDependencies = {}) {
   app.use('/api/v1/projects', createProjectRouter(deliveryRepository));
   app.use('/api/v1/costs', createCostRouter(costAnalyticsRepository));
   app.use('/api/v1/analytics', createAnalyticsRouter(costAnalyticsRepository));
+  app.use('/api/v1/documents', createDocumentRouter(deliveryRepository));
   app.use('/api/v1/kanban', createKanbanRouter(deliveryRepository));
   app.use('/api/v1/sync', createSyncRouter(consistencyMonitor));
   app.use('/api/v1/stories', createStoryRouter(deliveryRepository, workflowRealtimeHub, kanbanEditable));

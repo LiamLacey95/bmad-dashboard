@@ -16,23 +16,23 @@ function getWsUrl(): string {
 
 function statusClass(status: CanonicalStatus): string {
   if (status === 'blocked') {
-    return 'bg-amber-200 text-amber-900';
+    return 'status-pill status-pill--blocked';
   }
   if (status === 'failed') {
-    return 'bg-rose-200 text-rose-900';
+    return 'status-pill status-pill--failed';
   }
   if (status === 'done') {
-    return 'bg-emerald-200 text-emerald-900';
+    return 'status-pill status-pill--done';
   }
-  return 'bg-slate-200 text-slate-900';
+  return 'status-pill status-pill--neutral';
 }
 
 function transitionClass(status: CanonicalStatus): string {
   if (status === 'blocked') {
-    return 'border-amber-500/60 bg-amber-50 text-amber-950';
+    return 'status-panel-warning';
   }
   if (status === 'failed') {
-    return 'border-rose-500/60 bg-rose-50 text-rose-950';
+    return 'status-panel-error';
   }
   return 'border-[var(--border)] bg-[var(--panel)] text-[var(--fg)]';
 }
@@ -165,8 +165,9 @@ export function WorkflowsPage(): JSX.Element {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <section className="overflow-hidden rounded-lg border border-[var(--border)]">
-          <table className="min-w-full border-collapse text-sm">
+        <section className="rounded-lg border border-[var(--border)]">
+          <div className="overflow-x-auto">
+            <table className="min-w-full border-collapse text-sm">
             <thead className="bg-[var(--muted)] text-left">
               <tr>
                 <th className="px-3 py-2">Workflow</th>
@@ -210,7 +211,8 @@ export function WorkflowsPage(): JSX.Element {
                 </tr>
               )}
             </tbody>
-          </table>
+            </table>
+          </div>
         </section>
 
         <section className="space-y-3 rounded-lg border border-[var(--border)] p-3">
@@ -223,11 +225,11 @@ export function WorkflowsPage(): JSX.Element {
           )}
 
           {selectedWorkflowId && transitionsError && (
-            <div className="space-y-2 rounded-md border border-rose-400/50 bg-rose-100/70 p-3 text-sm text-rose-950">
+            <div className="status-panel-error space-y-2 rounded-md p-3 text-sm">
               <p>Timeline unavailable: {transitionsError}</p>
               <button
                 type="button"
-                className="rounded border border-rose-500 px-3 py-1"
+                className="rounded border border-[var(--surface-error-border)] bg-[var(--panel)] px-3 py-1"
                 onClick={() => {
                   void loadTransitions(selectedWorkflowId);
                 }}
@@ -255,10 +257,7 @@ export function WorkflowsPage(): JSX.Element {
           {selectedWorkflowId && !transitionsLoading && !transitionsError && selectedTransitions.length > 0 && (
             <ol className="space-y-2">
               {selectedTransitions.map((transition) => (
-                <li
-                  key={transition.id}
-                  className={`rounded-md border p-2 text-sm ${transitionClass(transition.toStatus)}`}
-                >
+                <li key={transition.id} className={`rounded-md border p-2 text-sm ${transitionClass(transition.toStatus)}`}>
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">
                       {transition.fromStatus ?? 'none'} -&gt; {transition.toStatus}

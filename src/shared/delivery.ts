@@ -43,6 +43,23 @@ export interface DocumentReference {
   mimeType: string;
 }
 
+export interface DocumentDetail extends DocumentReference {
+  storagePath: string;
+  checksum: string;
+  createdAt: string;
+}
+
+export type DocumentRenderMode = 'markdown' | 'json' | 'pdf' | 'unsupported' | 'missing';
+
+export interface DocumentContentPayload {
+  document: DocumentDetail;
+  renderMode: DocumentRenderMode;
+  safeToRenderInline: boolean;
+  content: string | null;
+  contentBase64: string | null;
+  guidance: string;
+}
+
 export interface WorkflowReference {
   id: string;
   projectId: string;

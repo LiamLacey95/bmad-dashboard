@@ -10,6 +10,8 @@ import type {
 } from '../../shared/costAnalytics.js';
 import type {
   ConsistencyWarning,
+  DocumentContentPayload,
+  DocumentDetail,
   KanbanBoard,
   ProjectContext,
   ProjectDetail,
@@ -64,10 +66,18 @@ export interface StoryStatusUpdateInput {
   occurredAtUtc?: string;
 }
 
+export interface DocumentQuery {
+  projectId?: string;
+  storyId?: string;
+}
+
 export interface DeliveryRepository {
   getProjects(query: ProjectQuery): Promise<{ items: ProjectSummary[]; total: number }>;
   getProjectById(id: string): Promise<ProjectDetail | null>;
   getProjectContext(projectId: string): Promise<ProjectContext | null>;
+  getDocuments(query: DocumentQuery): Promise<{ items: DocumentDetail[]; total: number }>;
+  getDocumentById(id: string): Promise<DocumentDetail | null>;
+  getDocumentContentById(id: string, inlineMimeAllowlist: string[]): Promise<DocumentContentPayload | null>;
   getKanbanBoard(projectId?: string): Promise<KanbanBoard>;
   updateStoryStatus(input: StoryStatusUpdateInput): Promise<StoryStatusChange>;
   getSyncStatus(): Promise<SyncModuleStatus[]>;

@@ -63,10 +63,10 @@ export function AppShell(): JSX.Element {
 
       <div className="mx-auto max-w-7xl space-y-2 px-4 py-3">
         <section aria-label="Sync status banners" className="space-y-2">
-          <div className="rounded-md border border-amber-400/40 bg-amber-500/10 px-3 py-2 text-sm text-amber-800 dark:text-amber-200">
+          <div className="status-panel-warning rounded-md px-3 py-2 text-sm">
             Stale modules: {staleModules.length ? staleModules.join(', ') : 'none'}
           </div>
-          <div className="rounded-md border border-blue-400/40 bg-blue-500/10 px-3 py-2 text-sm text-blue-800 dark:text-blue-200">
+          <div className="rounded-md border border-[var(--border)] bg-[var(--muted)] px-3 py-2 text-sm text-[var(--fg)]">
             Syncing modules: {syncingModules.length ? syncingModules.join(', ') : 'none'}
           </div>
           <div className="rounded-md border border-[var(--border)] bg-[var(--panel)] px-3 py-2 text-sm text-[var(--muted-fg)]">
