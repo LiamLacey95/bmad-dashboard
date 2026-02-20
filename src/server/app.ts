@@ -1,10 +1,13 @@
 import cors from 'cors';
 import express from 'express';
 import helmet from 'helmet';
+import { existsSync } from 'node:fs';
+import path from 'node:path';
 import { InMemoryCostAnalyticsRepository } from './dal/inMemoryCostAnalyticsRepository.js';
 import { InMemoryDeliveryRepository } from './dal/inMemoryDeliveryRepository.js';
 import { InMemoryStatusModelRepository } from './dal/inMemoryStatusModelRepository.js';
 import { InMemoryWorkflowRepository } from './dal/inMemoryWorkflowRepository.js';
+import { BMADStateRepository } from './dal/bmadStateRepository.js';
 import type { CostAnalyticsRepository, DeliveryRepository, WorkflowRepository } from './dal/interfaces.js';
 import { authMiddlewarePlaceholder } from './middleware/auth.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
@@ -33,11 +36,26 @@ export interface CreateAppDependencies {
 export function createApp(dependencies: CreateAppDependencies = {}) {
   const app = express();
   const statusModelRepository = new InMemoryStatusModelRepository();
-  const workflowRepository = dependencies.workflowRepository ?? new InMemoryWorkflowRepository();
   const kanbanEditable = process.env.KANBAN_EDITABLE === 'true';
-  const deliveryRepository =
-    dependencies.deliveryRepository ?? new InMemoryDeliveryRepository(workflowRepository, kanbanEditable);
-  const costAnalyticsRepository = dependencies.costAnalyticsRepository ?? new InMemoryCostAnalyticsRepository();
+
+  const bmadStatePath = path.resolve(process.cwd(), '.bmad/state/workflow.db');
+  let workflowRepository: WorkflowRepository;
+  let deliveryRepository: DeliveryRepository;
+  let costAnalyticsRepository: CostAnalyticsRepository;
+
+  if (existsSync(bmadStatePath)) {
+    console.log('[BMAD Dashboard] Using BMAD state repository:', bmadStatePath);
+    const bmadRepo = new BMADStateRepository(bmadStatePath);
+    workflowRepository = bmadRepo;
+    deliveryRepository = bmadRepo;
+    costAnalyticsRepository = bmadRepo;
+  } else {
+    console.log('[BMAD Dashboard] BMAD state DB not found, falling back to in-memory repositories:', bmadStatePath);
+    workflowRepository = dependencies.workflowRepository ?? new InMemoryWorkflowRepository();
+    deliveryRepository = dependencies.deliveryRepository ?? new InMemoryDeliveryRepository(workflowRepository, kanbanEditable);
+    costAnalyticsRepository = dependencies.costAnalyticsRepository ?? new InMemoryCostAnalyticsRepository();
+  }
+
   const consistencyMonitor = new DeliveryConsistencyMonitor(deliveryRepository);
   const workflowRealtimeHub =
     dependencies.workflowRealtimeHub ?? new InMemoryWorkflowRealtimeHub(workflowRepository, consistencyMonitor);
